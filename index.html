@@ -1,0 +1,2265 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        #map {
+            width: 910px;
+            height: 496px;
+        }
+        </style>
+        <title>carte interactive des périmètres irrigués</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/gadm41_BFA_1_0.js"></script>
+        <script src="data/Primtreirrigu_1.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:14
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>carte interactive des périmètres irrigués</h2>';
+        };
+        title.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+            map.setMaxBounds(map.getBounds());
+        }
+        function pop_gadm41_BFA_1_0(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td class="visible-with-data" id="GID_1" colspan="2"><strong>GID_1</strong><br />' + (feature.properties['GID_1'] !== null ? autolinker.link(String(feature.properties['GID_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="GID_0" colspan="2"><strong>GID_0</strong><br />' + (feature.properties['GID_0'] !== null ? autolinker.link(String(feature.properties['GID_0']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="COUNTRY" colspan="2"><strong>COUNTRY</strong><br />' + (feature.properties['COUNTRY'] !== null ? autolinker.link(String(feature.properties['COUNTRY']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="NAME_1" colspan="2"><strong>NAME_1</strong><br />' + (feature.properties['NAME_1'] !== null ? autolinker.link(String(feature.properties['NAME_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="VARNAME_1" colspan="2"><strong>VARNAME_1</strong><br />' + (feature.properties['VARNAME_1'] !== null ? autolinker.link(String(feature.properties['VARNAME_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="NL_NAME_1" colspan="2"><strong>NL_NAME_1</strong><br />' + (feature.properties['NL_NAME_1'] !== null ? autolinker.link(String(feature.properties['NL_NAME_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="TYPE_1" colspan="2"><strong>TYPE_1</strong><br />' + (feature.properties['TYPE_1'] !== null ? autolinker.link(String(feature.properties['TYPE_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="ENGTYPE_1" colspan="2"><strong>ENGTYPE_1</strong><br />' + (feature.properties['ENGTYPE_1'] !== null ? autolinker.link(String(feature.properties['ENGTYPE_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="CC_1" colspan="2"><strong>CC_1</strong><br />' + (feature.properties['CC_1'] !== null ? autolinker.link(String(feature.properties['CC_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="HASC_1" colspan="2"><strong>HASC_1</strong><br />' + (feature.properties['HASC_1'] !== null ? autolinker.link(String(feature.properties['HASC_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="ISO_1" colspan="2"><strong>ISO_1</strong><br />' + (feature.properties['ISO_1'] !== null ? autolinker.link(String(feature.properties['ISO_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_gadm41_BFA_1_0_0() {
+            return {
+                pane: 'pane_gadm41_BFA_1_0',
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 3.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+        }
+        map.createPane('pane_gadm41_BFA_1_0');
+        map.getPane('pane_gadm41_BFA_1_0').style.zIndex = 400;
+        map.getPane('pane_gadm41_BFA_1_0').style['mix-blend-mode'] = 'normal';
+        var layer_gadm41_BFA_1_0 = new L.geoJson(json_gadm41_BFA_1_0, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_gadm41_BFA_1_0',
+            layerName: 'layer_gadm41_BFA_1_0',
+            pane: 'pane_gadm41_BFA_1_0',
+            onEachFeature: pop_gadm41_BFA_1_0,
+            style: style_gadm41_BFA_1_0_0,
+        });
+        bounds_group.addLayer(layer_gadm41_BFA_1_0);
+        map.addLayer(layer_gadm41_BFA_1_0);
+        function pop_Primtreirrigu_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">NUMERO</th>\
+                        <td>' + (feature.properties['NUMERO'] !== null ? autolinker.link(String(feature.properties['NUMERO']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">REGION</th>\
+                        <td>' + (feature.properties['REGION'] !== null ? autolinker.link(String(feature.properties['REGION']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">PROVINCE</th>\
+                        <td>' + (feature.properties['PROVINCE'] !== null ? autolinker.link(String(feature.properties['PROVINCE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">COMMUNE</th>\
+                        <td>' + (feature.properties['COMMUNE'] !== null ? autolinker.link(String(feature.properties['COMMUNE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LOCALITE</th>\
+                        <td>' + (feature.properties['LOCALITE'] !== null ? autolinker.link(String(feature.properties['LOCALITE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">NOM_SITE</th>\
+                        <td>' + (feature.properties['NOM_SITE'] !== null ? autolinker.link(String(feature.properties['NOM_SITE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LAT_DD</th>\
+                        <td>' + (feature.properties['LAT_DD'] !== null ? autolinker.link(String(feature.properties['LAT_DD']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LONG_DD</th>\
+                        <td>' + (feature.properties['LONG_DD'] !== null ? autolinker.link(String(feature.properties['LONG_DD']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">TYPOLOGIE_</th>\
+                        <td>' + (feature.properties['TYPOLOGIE_'] !== null ? autolinker.link(String(feature.properties['TYPOLOGIE_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ANNEE_REAL</th>\
+                        <td>' + (feature.properties['ANNEE_REAL'] !== null ? autolinker.link(String(feature.properties['ANNEE_REAL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">INITIATIVE</th>\
+                        <td>' + (feature.properties['INITIATIVE'] !== null ? autolinker.link(String(feature.properties['INITIATIVE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ANNEE_1ERE</th>\
+                        <td>' + (feature.properties['ANNEE_1ERE'] !== null ? autolinker.link(String(feature.properties['ANNEE_1ERE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SUPERFICIE</th>\
+                        <td>' + (feature.properties['SUPERFICIE'] !== null ? autolinker.link(String(feature.properties['SUPERFICIE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SCOOP</th>\
+                        <td>' + (feature.properties['SCOOP'] !== null ? autolinker.link(String(feature.properties['SCOOP']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Etat de fo</th>\
+                        <td>' + (feature.properties['Etat de fo'] !== null ? autolinker.link(String(feature.properties['Etat de fo']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ETAT_AMENA</th>\
+                        <td>' + (feature.properties['ETAT_AMENA'] !== null ? autolinker.link(String(feature.properties['ETAT_AMENA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">TYPE_MAIN_</th>\
+                        <td>' + (feature.properties['TYPE_MAIN_'] !== null ? autolinker.link(String(feature.properties['TYPE_MAIN_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">NOMBRE_TOT</th>\
+                        <td>' + (feature.properties['NOMBRE_TOT'] !== null ? autolinker.link(String(feature.properties['NOMBRE_TOT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">NOMBRE_HOM</th>\
+                        <td>' + (feature.properties['NOMBRE_HOM'] !== null ? autolinker.link(String(feature.properties['NOMBRE_HOM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NOMBRE_FEM'] !== null ? autolinker.link(String(feature.properties['NOMBRE_FEM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Spéculati</th>\
+                        <td>' + (feature.properties['Spéculati'] !== null ? autolinker.link(String(feature.properties['Spéculati']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Primtreirrigu_1_0() {
+            return {
+                pane: 'pane_Primtreirrigu_1',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Primtreirrigu_1');
+        map.getPane('pane_Primtreirrigu_1').style.zIndex = 401;
+        map.getPane('pane_Primtreirrigu_1').style['mix-blend-mode'] = 'normal';
+        var layer_Primtreirrigu_1 = new L.geoJson(json_Primtreirrigu_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Primtreirrigu_1',
+            layerName: 'layer_Primtreirrigu_1',
+            pane: 'pane_Primtreirrigu_1',
+            onEachFeature: pop_Primtreirrigu_1,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Primtreirrigu_1_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Primtreirrigu_1);
+        map.addLayer(layer_Primtreirrigu_1);
+        const url = {"Nominatim": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+        "BAN": "https://api-adresse.data.gouv.fr/search/?"}
+        var photonControl = L.control.photon({
+            url: url["Nominatim"],
+            feedbackLabel: '',
+            position: 'topleft',
+            includePosition: true,
+            initial: true,
+            // resultsHandler: myHandler,
+        }).addTo(map);
+        photonControl._container.childNodes[0].style.borderRadius="10px"
+        // Create a variable to store the geoJSON data
+        var x = null;
+        // Create a variable to store the marker
+        var marker = null;
+        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
+        var z = null;
+        photonControl.on('selected', function(e) {
+            console.log(photonControl.search.resultsContainer);
+            if (x != null) {
+                map.removeLayer(obj3.marker);
+                map.removeLayer(x);
+            }
+            obj2.gcd = e.choice;
+            x = L.geoJSON(obj2.gcd).addTo(map);
+            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
+            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
+            map.setView(x.getLayers()[0].getLatLng(), 17);
+            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
+            console.log(e);
+            e.target.input.value = z;
+        });
+        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
+        search.classList.add("leaflet-control-search")
+        search.style.display = "flex";
+        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+
+        // Créer le nouvel élément bouton
+        var button = document.createElement("div");
+        button.id = "gcd-button-control";
+        button.className = "gcd-gl-btn fa fa-search search-button";
+
+        // Ajouter le bouton à l'élément parent
+        search.insertBefore(button, search.firstChild);
+        last = search.lastChild;
+        last.style.display = "none";
+        button.addEventListener("click", function (e) {
+            if (last.style.display === "none") {
+                last.style.display = "block";
+            } else {
+                last.style.display = "none";
+            }
+        });
+        var overlaysTree = [
+            {label: '<img src="legend/Primtreirrigu_1.png" /> Périmètre irrigué', layer: layer_Primtreirrigu_1},
+            {label: '<img src="legend/gadm41_BFA_1_0.png" /> gadm41_BFA_1', layer: layer_gadm41_BFA_1_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"LOCALITE": "str","NOM_SITE": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_LOCALITE = document.createElement('div');
+            div_LOCALITE.id = "div_LOCALITE";
+            div_LOCALITE.className= "filterselect";
+            document.getElementById("menu").appendChild(div_LOCALITE);
+            sel_LOCALITE = document.createElement('select');
+            sel_LOCALITE.multiple = true;
+            sel_LOCALITE.size = 10;
+            sel_LOCALITE.id = "sel_LOCALITE";
+            var LOCALITE_options_str = "<option value='' unselected></option>";
+            sel_LOCALITE.onchange = function(){filterFunc()};
+            LOCALITE_options_str  += '<option value="NULL">NULL</option>';
+            LOCALITE_options_str  += '<option value="ABRA">ABRA</option>';
+            LOCALITE_options_str  += '<option value="ALOUMOU">ALOUMOU</option>';
+            LOCALITE_options_str  += '<option value="AMSIA">AMSIA</option>';
+            LOCALITE_options_str  += '<option value="ANSOURI">ANSOURI</option>';
+            LOCALITE_options_str  += '<option value="BABONGA">BABONGA</option>';
+            LOCALITE_options_str  += '<option value="BABOULI">BABOULI</option>';
+            LOCALITE_options_str  += '<option value="BADORA">BADORA</option>';
+            LOCALITE_options_str  += '<option value="BAGMASKIERGA">BAGMASKIERGA</option>';
+            LOCALITE_options_str  += '<option value="BAKATA">BAKATA</option>';
+            LOCALITE_options_str  += '<option value="BALAVE">BALAVE</option>';
+            LOCALITE_options_str  += '<option value="BAMA">BAMA</option>';
+            LOCALITE_options_str  += '<option value="BAMBARASSO">BAMBARASSO</option>';
+            LOCALITE_options_str  += '<option value="BAN">BAN</option>';
+            LOCALITE_options_str  += '<option value="BANA">BANA</option>';
+            LOCALITE_options_str  += '<option value="BANDIEDAGA">BANDIEDAGA</option>';
+            LOCALITE_options_str  += '<option value="BANDIHOSSI">BANDIHOSSI</option>';
+            LOCALITE_options_str  += '<option value="BANGASSOGO">BANGASSOGO</option>';
+            LOCALITE_options_str  += '<option value="BANGHARIA">BANGHARIA</option>';
+            LOCALITE_options_str  += '<option value="BANGMIOUGOU">BANGMIOUGOU</option>';
+            LOCALITE_options_str  += '<option value="BANGUISOM">BANGUISOM</option>';
+            LOCALITE_options_str  += '<option value="BANI">BANI</option>';
+            LOCALITE_options_str  += '<option value="BANKOUMA 1">BANKOUMA 1</option>';
+            LOCALITE_options_str  += '<option value="BANKOUMA 2">BANKOUMA 2</option>';
+            LOCALITE_options_str  += '<option value="BANZON">BANZON</option>';
+            LOCALITE_options_str  += '<option value="BAOGHIN">BAOGHIN</option>';
+            LOCALITE_options_str  += '<option value="BAOGOU">BAOGOU</option>';
+            LOCALITE_options_str  += '<option value="BAPLA">BAPLA</option>';
+            LOCALITE_options_str  += '<option value="BAPLA-BIRIFOR">BAPLA-BIRIFOR</option>';
+            LOCALITE_options_str  += '<option value="BARABOULE">BARABOULE</option>';
+            LOCALITE_options_str  += '<option value="BARAKUY">BARAKUY</option>';
+            LOCALITE_options_str  += '<option value="BARBOULI">BARBOULI</option>';
+            LOCALITE_options_str  += '<option value="BARGGO">BARGGO</option>';
+            LOCALITE_options_str  += '<option value="BARGO">BARGO</option>';
+            LOCALITE_options_str  += '<option value="BARKAMA">BARKAMA</option>';
+            LOCALITE_options_str  += '<option value="BARRAGE DIAPAGA">BARRAGE DIAPAGA</option>';
+            LOCALITE_options_str  += '<option value="BARSA">BARSA</option>';
+            LOCALITE_options_str  += '<option value="BASSEMBILY">BASSEMBILY</option>';
+            LOCALITE_options_str  += '<option value="BATIBAGOU">BATIBAGOU</option>';
+            LOCALITE_options_str  += '<option value="BATONDO">BATONDO</option>';
+            LOCALITE_options_str  += '<option value="BAYEND FOULGO">BAYEND FOULGO</option>';
+            LOCALITE_options_str  += '<option value="BEKUY">BEKUY</option>';
+            LOCALITE_options_str  += '<option value="BELEL SENO">BELEL SENO</option>';
+            LOCALITE_options_str  += '<option value="BELGA">BELGA</option>';
+            LOCALITE_options_str  += '<option value="BENDOUGOU">BENDOUGOU</option>';
+            LOCALITE_options_str  += '<option value="BENHOURGOU">BENHOURGOU</option>';
+            LOCALITE_options_str  += '<option value="BENTENGA">BENTENGA</option>';
+            LOCALITE_options_str  += '<option value="BERKOUÈ">BERKOUÈ</option>';
+            LOCALITE_options_str  += '<option value="BIDI">BIDI</option>';
+            LOCALITE_options_str  += '<option value="BIDIGA">BIDIGA</option>';
+            LOCALITE_options_str  += '<option value="BILAMPERGA">BILAMPERGA</option>';
+            LOCALITE_options_str  += '<option value="BILANGA">BILANGA</option>';
+            LOCALITE_options_str  += '<option value="BILANGA-YANGA">BILANGA-YANGA</option>';
+            LOCALITE_options_str  += '<option value="BILANGHIN">BILANGHIN</option>';
+            LOCALITE_options_str  += '<option value="BILANPERGA">BILANPERGA</option>';
+            LOCALITE_options_str  += '<option value="BILBALOGO">BILBALOGO</option>';
+            LOCALITE_options_str  += '<option value="BIRA">BIRA</option>';
+            LOCALITE_options_str  += '<option value="BIRGUIN">BIRGUIN</option>';
+            LOCALITE_options_str  += '<option value="BIRMONGA">BIRMONGA</option>';
+            LOCALITE_options_str  += '<option value="BIRON MARKA">BIRON MARKA</option>';
+            LOCALITE_options_str  += '<option value="BISSERKE">BISSERKE</option>';
+            LOCALITE_options_str  += '<option value="BLADI">BLADI</option>';
+            LOCALITE_options_str  += '<option value="BOALA">BOALA</option>';
+            LOCALITE_options_str  += '<option value="BOANDENI">BOANDENI</option>';
+            LOCALITE_options_str  += '<option value="BOARÉ">BOARÉ</option>';
+            LOCALITE_options_str  += '<option value="BODIOGUIN">BODIOGUIN</option>';
+            LOCALITE_options_str  += '<option value="BOGNORI">BOGNORI</option>';
+            LOCALITE_options_str  += '<option value="BOGONAM">BOGONAM</option>';
+            LOCALITE_options_str  += '<option value="BOGRE">BOGRE</option>';
+            LOCALITE_options_str  += '<option value="BOKUY">BOKUY</option>';
+            LOCALITE_options_str  += '<option value="BOLEMBAR">BOLEMBAR</option>';
+            LOCALITE_options_str  += '<option value="BOLGOTENGA">BOLGOTENGA</option>';
+            LOCALITE_options_str  += '<option value="BOLIEL 2">BOLIEL 2</option>';
+            LOCALITE_options_str  += '<option value="BOMBARA">BOMBARA</option>';
+            LOCALITE_options_str  += '<option value="BONAM">BONAM</option>';
+            LOCALITE_options_str  += '<option value="BONAPIO">BONAPIO</option>';
+            LOCALITE_options_str  += '<option value="BONDA">BONDA</option>';
+            LOCALITE_options_str  += '<option value="BONGA">BONGA</option>';
+            LOCALITE_options_str  += '<option value="BONOU">BONOU</option>';
+            LOCALITE_options_str  += '<option value="BORO">BORO</option>';
+            LOCALITE_options_str  += '<option value="BOSSALGA">BOSSALGA</option>';
+            LOCALITE_options_str  += '<option value="BOSSEY DOGABE">BOSSEY DOGABE</option>';
+            LOCALITE_options_str  += '<option value="BOTONTOU/NARA">BOTONTOU/NARA</option>';
+            LOCALITE_options_str  += '<option value="BOTOU">BOTOU</option>';
+            LOCALITE_options_str  += '<option value="BOUBOU">BOUBOU</option>';
+            LOCALITE_options_str  += '<option value="BOUDANE">BOUDANE</option>';
+            LOCALITE_options_str  += '<option value="BOUDANGOU">BOUDANGOU</option>';
+            LOCALITE_options_str  += '<option value="BOUDIERI">BOUDIERI</option>';
+            LOCALITE_options_str  += '<option value="BOUGUE">BOUGUE</option>';
+            LOCALITE_options_str  += '<option value="BOUGUI">BOUGUI</option>';
+            LOCALITE_options_str  += '<option value="BOUKTENGA">BOUKTENGA</option>';
+            LOCALITE_options_str  += '<option value="BOULGUIN">BOULGUIN</option>';
+            LOCALITE_options_str  += '<option value="BOULMIOUGOU">BOULMIOUGOU</option>';
+            LOCALITE_options_str  += '<option value="BOULOYE">BOULOYE</option>';
+            LOCALITE_options_str  += '<option value="BOULSA">BOULSA</option>';
+            LOCALITE_options_str  += '<option value="BOULYALGOU">BOULYALGOU</option>';
+            LOCALITE_options_str  += '<option value="BOUNDORE">BOUNDORE</option>';
+            LOCALITE_options_str  += '<option value="BOUNDOUGNOUDJI">BOUNDOUGNOUDJI</option>';
+            LOCALITE_options_str  += '<option value="BOUNGOUFOLGOU">BOUNGOUFOLGOU</option>';
+            LOCALITE_options_str  += '<option value="BOUNOU">BOUNOU</option>';
+            LOCALITE_options_str  += '<option value="BOURBA">BOURBA</option>';
+            LOCALITE_options_str  += '<option value="BOURZANGA">BOURZANGA</option>';
+            LOCALITE_options_str  += '<option value="BOUSMA">BOUSMA</option>';
+            LOCALITE_options_str  += '<option value="BOUSSE / SELOGUIN">BOUSSE / SELOGUIN</option>';
+            LOCALITE_options_str  += '<option value="BOUSSOUGOU">BOUSSOUGOU</option>';
+            LOCALITE_options_str  += '<option value="BOUSSOUMA 1">BOUSSOUMA 1</option>';
+            LOCALITE_options_str  += '<option value="BOUSSOUMA 2">BOUSSOUMA 2</option>';
+            LOCALITE_options_str  += '<option value="BOUTIOUROU">BOUTIOUROU</option>';
+            LOCALITE_options_str  += '<option value="BOUTOUANOU">BOUTOUANOU</option>';
+            LOCALITE_options_str  += '<option value="BOUVAR">BOUVAR</option>';
+            LOCALITE_options_str  += '<option value="BROWALLE">BROWALLE</option>';
+            LOCALITE_options_str  += '<option value="BÈNA">BÈNA</option>';
+            LOCALITE_options_str  += '<option value="CHARAM-CHARAM">CHARAM-CHARAM</option>';
+            LOCALITE_options_str  += '<option value="COALLA">COALLA</option>';
+            LOCALITE_options_str  += '<option value="COLLÈGE CHARLES L">COLLÈGE CHARLES L</option>';
+            LOCALITE_options_str  += '<option value="DABESMA">DABESMA</option>';
+            LOCALITE_options_str  += '<option value="DABIOU">DABIOU</option>';
+            LOCALITE_options_str  += '<option value="DABLO">DABLO</option>';
+            LOCALITE_options_str  += '<option value="DADONE">DADONE</option>';
+            LOCALITE_options_str  += '<option value="DAFIRE">DAFIRE</option>';
+            LOCALITE_options_str  += '<option value="DAGOU">DAGOU</option>';
+            LOCALITE_options_str  += '<option value="DAHANGOU">DAHANGOU</option>';
+            LOCALITE_options_str  += '<option value="DAKA">DAKA</option>';
+            LOCALITE_options_str  += '<option value="DAKE">DAKE</option>';
+            LOCALITE_options_str  += '<option value="DAKIRI">DAKIRI</option>';
+            LOCALITE_options_str  += '<option value="DAKPLO KOULAPOR">DAKPLO KOULAPOR</option>';
+            LOCALITE_options_str  += '<option value="DAKPOLO GOMPAR">DAKPOLO GOMPAR</option>';
+            LOCALITE_options_str  += '<option value="DAMBAM">DAMBAM</option>';
+            LOCALITE_options_str  += '<option value="DAMDEGOU">DAMDEGOU</option>';
+            LOCALITE_options_str  += '<option value="DAMPELA">DAMPELA</option>';
+            LOCALITE_options_str  += '<option value="DANFINA">DANFINA</option>';
+            LOCALITE_options_str  += '<option value="DANIÉ">DANIÉ</option>';
+            LOCALITE_options_str  += '<option value="DANTCHADI">DANTCHADI</option>';
+            LOCALITE_options_str  += '<option value="DAPELGO">DAPELGO</option>';
+            LOCALITE_options_str  += '<option value="DARIGMA">DARIGMA</option>';
+            LOCALITE_options_str  += '<option value="DARODINE">DARODINE</option>';
+            LOCALITE_options_str  += '<option value="DARSALAM">DARSALAM</option>';
+            LOCALITE_options_str  += '<option value="DARSALAM/SANAKUY">DARSALAM/SANAKUY</option>';
+            LOCALITE_options_str  += '<option value="DASSA/DIOUM">DASSA/DIOUM</option>';
+            LOCALITE_options_str  += '<option value="DASSANGA">DASSANGA</option>';
+            LOCALITE_options_str  += '<option value="DATOUGOU">DATOUGOU</option>';
+            LOCALITE_options_str  += '<option value="DEBERE DOUMAN">DEBERE DOUMAN</option>';
+            LOCALITE_options_str  += '<option value="DEBERE TALATA">DEBERE TALATA</option>';
+            LOCALITE_options_str  += '<option value="DEBOUDA">DEBOUDA</option>';
+            LOCALITE_options_str  += '<option value="DI">DI</option>';
+            LOCALITE_options_str  += '<option value="DIALSONGOU">DIALSONGOU</option>';
+            LOCALITE_options_str  += '<option value="DIAOUNGA">DIAOUNGA</option>';
+            LOCALITE_options_str  += '<option value="DIAPANGOU">DIAPANGOU</option>';
+            LOCALITE_options_str  += '<option value="DIDRO">DIDRO</option>';
+            LOCALITE_options_str  += '<option value="DIEBOUGOU SECTEUR 5">DIEBOUGOU SECTEUR 5</option>';
+            LOCALITE_options_str  += '<option value="DILAMPERGA">DILAMPERGA</option>';
+            LOCALITE_options_str  += '<option value="DIMOLO">DIMOLO</option>';
+            LOCALITE_options_str  += '<option value="DINA">DINA</option>';
+            LOCALITE_options_str  += '<option value="DINOBENIN">DINOBENIN</option>';
+            LOCALITE_options_str  += '<option value="DIOMENA">DIOMENA</option>';
+            LOCALITE_options_str  += '<option value="DIONTALA">DIONTALA</option>';
+            LOCALITE_options_str  += '<option value="DIPIENGA">DIPIENGA</option>';
+            LOCALITE_options_str  += '<option value="DIRLAKOU">DIRLAKOU</option>';
+            LOCALITE_options_str  += '<option value="DIYALA 2">DIYALA 2</option>';
+            LOCALITE_options_str  += '<option value="DJIBO">DJIBO</option>';
+            LOCALITE_options_str  += '<option value="DJIKA">DJIKA</option>';
+            LOCALITE_options_str  += '<option value="DJIKANDO">DJIKANDO</option>';
+            LOCALITE_options_str  += '<option value="DJOALI">DJOALI</option>';
+            LOCALITE_options_str  += '<option value="DJOGOTA">DJOGOTA</option>';
+            LOCALITE_options_str  += '<option value="DJOGOTA/TITA">DJOGOTA/TITA</option>';
+            LOCALITE_options_str  += '<option value="DJOMGA">DJOMGA</option>';
+            LOCALITE_options_str  += '<option value="DJOUNGODIO">DJOUNGODIO</option>';
+            LOCALITE_options_str  += '<option value="DOLO">DOLO</option>';
+            LOCALITE_options_str  += '<option value="DONSIN">DONSIN</option>';
+            LOCALITE_options_str  += '<option value="DORI">DORI</option>';
+            LOCALITE_options_str  += '<option value="DOTOKO">DOTOKO</option>';
+            LOCALITE_options_str  += '<option value="DOU">DOU</option>';
+            LOCALITE_options_str  += '<option value="DOUGRE">DOUGRE</option>';
+            LOCALITE_options_str  += '<option value="DOUMA">DOUMA</option>';
+            LOCALITE_options_str  += '<option value="DOUMAM">DOUMAM</option>';
+            LOCALITE_options_str  += '<option value="DOWENDO">DOWENDO</option>';
+            LOCALITE_options_str  += '<option value="DÉBÉ">DÉBÉ</option>';
+            LOCALITE_options_str  += '<option value="ECOLE DE TIANTIABOULIS">ECOLE DE TIANTIABOULIS</option>';
+            LOCALITE_options_str  += '<option value="ESSAKANE">ESSAKANE</option>';
+            LOCALITE_options_str  += '<option value="FADA">FADA</option>';
+            LOCALITE_options_str  += '<option value="FADA N&apos;GOURMA">FADA N&apos;GOURMA</option>';
+            LOCALITE_options_str  += '<option value="FADA SECT10">FADA SECT10</option>';
+            LOCALITE_options_str  += '<option value="FAFO">FAFO</option>';
+            LOCALITE_options_str  += '<option value="FAKOUNA">FAKOUNA</option>';
+            LOCALITE_options_str  += '<option value="FALAGOUNTOU">FALAGOUNTOU</option>';
+            LOCALITE_options_str  += '<option value="FANWARGOU">FANWARGOU</option>';
+            LOCALITE_options_str  += '<option value="FARA">FARA</option>';
+            LOCALITE_options_str  += '<option value="FARA SECTEUR 1(2)">FARA SECTEUR 1(2)</option>';
+            LOCALITE_options_str  += '<option value="FARA SECTEUR 1(3)">FARA SECTEUR 1(3)</option>';
+            LOCALITE_options_str  += '<option value="FARA SECTEUR 1(4)">FARA SECTEUR 1(4)</option>';
+            LOCALITE_options_str  += '<option value="FARA SECTEUR 3 (1)">FARA SECTEUR 3 (1)</option>';
+            LOCALITE_options_str  += '<option value="FARA SECTEUR 3 (2)">FARA SECTEUR 3 (2)</option>';
+            LOCALITE_options_str  += '<option value="FELEWE">FELEWE</option>';
+            LOCALITE_options_str  += '<option value="FIDO">FIDO</option>';
+            LOCALITE_options_str  += '<option value="FILI-FILI">FILI-FILI</option>';
+            LOCALITE_options_str  += '<option value="FINI">FINI</option>';
+            LOCALITE_options_str  += '<option value="FIRGUINDI">FIRGUINDI</option>';
+            LOCALITE_options_str  += '<option value="FOUBE">FOUBE</option>';
+            LOCALITE_options_str  += '<option value="FOUBI">FOUBI</option>';
+            LOCALITE_options_str  += '<option value="FOUFOU">FOUFOU</option>';
+            LOCALITE_options_str  += '<option value="GABOANDI">GABOANDI</option>';
+            LOCALITE_options_str  += '<option value="GAGNOU">GAGNOU</option>';
+            LOCALITE_options_str  += '<option value="GAGUINI">GAGUINI</option>';
+            LOCALITE_options_str  += '<option value="GAIK N&apos;GOATA">GAIK N&apos;GOATA</option>';
+            LOCALITE_options_str  += '<option value="GAIK-N&apos;GOATA">GAIK-N&apos;GOATA</option>';
+            LOCALITE_options_str  += '<option value="GANGABOULE">GANGABOULE</option>';
+            LOCALITE_options_str  += '<option value="GANGANI">GANGANI</option>';
+            LOCALITE_options_str  += '<option value="GAONGO">GAONGO</option>';
+            LOCALITE_options_str  += '<option value="GAOUA SECTEUR 3">GAOUA SECTEUR 3</option>';
+            LOCALITE_options_str  += '<option value="GAOUA SECTEUR 4">GAOUA SECTEUR 4</option>';
+            LOCALITE_options_str  += '<option value="GASKAYE">GASKAYE</option>';
+            LOCALITE_options_str  += '<option value="GAZANDOURE">GAZANDOURE</option>';
+            LOCALITE_options_str  += '<option value="GIMBOARI">GIMBOARI</option>';
+            LOCALITE_options_str  += '<option value="GNASOUMADOUGOU">GNASOUMADOUGOU</option>';
+            LOCALITE_options_str  += '<option value="GNISSONGUIN">GNISSONGUIN</option>';
+            LOCALITE_options_str  += '<option value="GNITIGBA">GNITIGBA</option>';
+            LOCALITE_options_str  += '<option value="GOALA">GOALA</option>';
+            LOCALITE_options_str  += '<option value="GODIN OUALOGTENGA">GODIN OUALOGTENGA</option>';
+            LOCALITE_options_str  += '<option value="GODO">GODO</option>';
+            LOCALITE_options_str  += '<option value="GOMDE-FULBE">GOMDE-FULBE</option>';
+            LOCALITE_options_str  += '<option value="GOMDE-MOSSI">GOMDE-MOSSI</option>';
+            LOCALITE_options_str  += '<option value="GOMO">GOMO</option>';
+            LOCALITE_options_str  += '<option value="GONGA">GONGA</option>';
+            LOCALITE_options_str  += '<option value="GONSE">GONSE</option>';
+            LOCALITE_options_str  += '<option value="GORGABOULE">GORGABOULE</option>';
+            LOCALITE_options_str  += '<option value="GORGHO PLAINE">GORGHO PLAINE</option>';
+            LOCALITE_options_str  += '<option value="GORIN">GORIN</option>';
+            LOCALITE_options_str  += '<option value="GOROM-GOROM">GOROM-GOROM</option>';
+            LOCALITE_options_str  += '<option value="GOROM-GOROM SECTEUR 3">GOROM-GOROM SECTEUR 3</option>';
+            LOCALITE_options_str  += '<option value="GOROUOL-GALOLE">GOROUOL-GALOLE</option>';
+            LOCALITE_options_str  += '<option value="GOSSON">GOSSON</option>';
+            LOCALITE_options_str  += '<option value="GOUE">GOUE</option>';
+            LOCALITE_options_str  += '<option value="GOUIM">GOUIM</option>';
+            LOCALITE_options_str  += '<option value="GOULGOUNTOU">GOULGOUNTOU</option>';
+            LOCALITE_options_str  += '<option value="GOUMA">GOUMA</option>';
+            LOCALITE_options_str  += '<option value="GOUMOGHO">GOUMOGHO</option>';
+            LOCALITE_options_str  += '<option value="GOUNDRY">GOUNDRY</option>';
+            LOCALITE_options_str  += '<option value="GOUNIAN">GOUNIAN</option>';
+            LOCALITE_options_str  += '<option value="GOUYALÉ">GOUYALÉ</option>';
+            LOCALITE_options_str  += '<option value="GOUÉRÉ">GOUÉRÉ</option>';
+            LOCALITE_options_str  += '<option value="GUEFOURGOU">GUEFOURGOU</option>';
+            LOCALITE_options_str  += '<option value="GUENBILA">GUENBILA</option>';
+            LOCALITE_options_str  += '<option value="GUENDE">GUENDE</option>';
+            LOCALITE_options_str  += '<option value="GUIBARE">GUIBARE</option>';
+            LOCALITE_options_str  += '<option value="GUILGUIN">GUILGUIN</option>';
+            LOCALITE_options_str  += '<option value="GUILYENDE">GUILYENDE</option>';
+            LOCALITE_options_str  += '<option value="GUIMOU">GUIMOU</option>';
+            LOCALITE_options_str  += '<option value="HAABA">HAABA</option>';
+            LOCALITE_options_str  += '<option value="HAABA CENTRE">HAABA CENTRE</option>';
+            LOCALITE_options_str  += '<option value="HABA">HABA</option>';
+            LOCALITE_options_str  += '<option value="HAHURI">HAHURI</option>';
+            LOCALITE_options_str  += '<option value="HAMDALAYE">HAMDALAYE</option>';
+            LOCALITE_options_str  += '<option value="HASBILAYE">HASBILAYE</option>';
+            LOCALITE_options_str  += '<option value="HELGA">HELGA</option>';
+            LOCALITE_options_str  += '<option value="HOADIKOAGA">HOADIKOAGA</option>';
+            LOCALITE_options_str  += '<option value="IBAL">IBAL</option>';
+            LOCALITE_options_str  += '<option value="IBAL TINGOU">IBAL TINGOU</option>';
+            LOCALITE_options_str  += '<option value="INGANI">INGANI</option>';
+            LOCALITE_options_str  += '<option value="IOLONIORO">IOLONIORO</option>';
+            LOCALITE_options_str  += '<option value="ITAORÉ">ITAORÉ</option>';
+            LOCALITE_options_str  += '<option value="IVIDIÉ">IVIDIÉ</option>';
+            LOCALITE_options_str  += '<option value="KABINOU">KABINOU</option>';
+            LOCALITE_options_str  += '<option value="KABONGA 1">KABONGA 1</option>';
+            LOCALITE_options_str  += '<option value="KABONGA 2">KABONGA 2</option>';
+            LOCALITE_options_str  += '<option value="KABOUDA">KABOUDA</option>';
+            LOCALITE_options_str  += '<option value="KADOMBO">KADOMBO</option>';
+            LOCALITE_options_str  += '<option value="KAKIM">KAKIM</option>';
+            LOCALITE_options_str  += '<option value="KALBOULIS 1">KALBOULIS 1</option>';
+            LOCALITE_options_str  += '<option value="KALKONE">KALKONE</option>';
+            LOCALITE_options_str  += '<option value="KALLO">KALLO</option>';
+            LOCALITE_options_str  += '<option value="KALMAMA">KALMAMA</option>';
+            LOCALITE_options_str  += '<option value="KAM">KAM</option>';
+            LOCALITE_options_str  += '<option value="KAMBA">KAMBA</option>';
+            LOCALITE_options_str  += '<option value="KAMPELSE ZOUGO">KAMPELSE ZOUGO</option>';
+            LOCALITE_options_str  += '<option value="KAMPTI-LOBI">KAMPTI-LOBI</option>';
+            LOCALITE_options_str  += '<option value="KAMSI">KAMSI</option>';
+            LOCALITE_options_str  += '<option value="KANDAOGO GOUDRIN">KANDAOGO GOUDRIN</option>';
+            LOCALITE_options_str  += '<option value="KANKANFOGOU">KANKANFOGOU</option>';
+            LOCALITE_options_str  += '<option value="KANKANIBA">KANKANIBA</option>';
+            LOCALITE_options_str  += '<option value="KANKONO">KANKONO</option>';
+            LOCALITE_options_str  += '<option value="KANRE">KANRE</option>';
+            LOCALITE_options_str  += '<option value="KANTIOKA-YAMBA">KANTIOKA-YAMBA</option>';
+            LOCALITE_options_str  += '<option value="KAODIFAGOU">KAODIFAGOU</option>';
+            LOCALITE_options_str  += '<option value="KAONSÉ">KAONSÉ</option>';
+            LOCALITE_options_str  += '<option value="KARABA (6)">KARABA (6)</option>';
+            LOCALITE_options_str  += '<option value="KARABA (8)">KARABA (8)</option>';
+            LOCALITE_options_str  += '<option value="KARFIGUELA">KARFIGUELA</option>';
+            LOCALITE_options_str  += '<option value="KASSAKONGO">KASSAKONGO</option>';
+            LOCALITE_options_str  += '<option value="KASSAN">KASSAN</option>';
+            LOCALITE_options_str  += '<option value="KAYA KAORO">KAYA KAORO</option>';
+            LOCALITE_options_str  += '<option value="KAYAO">KAYAO</option>';
+            LOCALITE_options_str  += '<option value="KAYERO-BO">KAYERO-BO</option>';
+            LOCALITE_options_str  += '<option value="KELBEKIN/BOUDIENGUI">KELBEKIN/BOUDIENGUI</option>';
+            LOCALITE_options_str  += '<option value="KELEGUIEF">KELEGUIEF</option>';
+            LOCALITE_options_str  += '<option value="KELWORO">KELWORO</option>';
+            LOCALITE_options_str  += '<option value="KEMENA">KEMENA</option>';
+            LOCALITE_options_str  += '<option value="KIENDBINGRE">KIENDBINGRE</option>';
+            LOCALITE_options_str  += '<option value="KIERMA">KIERMA</option>';
+            LOCALITE_options_str  += '<option value="KIERYAOGHIN">KIERYAOGHIN</option>';
+            LOCALITE_options_str  += '<option value="KIETA">KIETA</option>';
+            LOCALITE_options_str  += '<option value="KIKO">KIKO</option>';
+            LOCALITE_options_str  += '<option value="KILINGBARA">KILINGBARA</option>';
+            LOCALITE_options_str  += '<option value="KILOU">KILOU</option>';
+            LOCALITE_options_str  += '<option value="KINDI/BARIBSI">KINDI/BARIBSI</option>';
+            LOCALITE_options_str  += '<option value="KINDI/ZAGTOGO">KINDI/ZAGTOGO</option>';
+            LOCALITE_options_str  += '<option value="KIRA">KIRA</option>';
+            LOCALITE_options_str  += '<option value="KIRIBLE">KIRIBLE</option>';
+            LOCALITE_options_str  += '<option value="KISSIRGOUEM">KISSIRGOUEM</option>';
+            LOCALITE_options_str  += '<option value="KIÈMBARA">KIÈMBARA</option>';
+            LOCALITE_options_str  += '<option value="KOALA">KOALA</option>';
+            LOCALITE_options_str  += '<option value="KOASSANGA">KOASSANGA</option>';
+            LOCALITE_options_str  += '<option value="KOBGO">KOBGO</option>';
+            LOCALITE_options_str  += '<option value="KODIOLAYE">KODIOLAYE</option>';
+            LOCALITE_options_str  += '<option value="KODOUGOU">KODOUGOU</option>';
+            LOCALITE_options_str  += '<option value="KOGKOUNDI">KOGKOUNDI</option>';
+            LOCALITE_options_str  += '<option value="KOGOSABGO">KOGOSABGO</option>';
+            LOCALITE_options_str  += '<option value="KOGUINA">KOGUINA</option>';
+            LOCALITE_options_str  += '<option value="KOHO">KOHO</option>';
+            LOCALITE_options_str  += '<option value="KOKOYO">KOKOYO</option>';
+            LOCALITE_options_str  += '<option value="KOLGODIESSE">KOLGODIESSE</option>';
+            LOCALITE_options_str  += '<option value="KOLOKANDÉ IPENDO">KOLOKANDÉ IPENDO</option>';
+            LOCALITE_options_str  += '<option value="KOLONKOM">KOLONKOM</option>';
+            LOCALITE_options_str  += '<option value="KOLONKOMI">KOLONKOMI</option>';
+            LOCALITE_options_str  += '<option value="KOMBELGO">KOMBELGO</option>';
+            LOCALITE_options_str  += '<option value="KOMBOARI">KOMBOARI</option>';
+            LOCALITE_options_str  += '<option value="KOMSILGA">KOMSILGA</option>';
+            LOCALITE_options_str  += '<option value="KONDOGHIN">KONDOGHIN</option>';
+            LOCALITE_options_str  += '<option value="KONENI">KONENI</option>';
+            LOCALITE_options_str  += '<option value="KONGAYE">KONGAYE</option>';
+            LOCALITE_options_str  += '<option value="KONIOUDOU">KONIOUDOU</option>';
+            LOCALITE_options_str  += '<option value="KONKOA">KONKOA</option>';
+            LOCALITE_options_str  += '<option value="KONTOGO">KONTOGO</option>';
+            LOCALITE_options_str  += '<option value="KOPER">KOPER</option>';
+            LOCALITE_options_str  += '<option value="KOPOIE">KOPOIE</option>';
+            LOCALITE_options_str  += '<option value="KORA">KORA</option>';
+            LOCALITE_options_str  += '<option value="KORA NOILOUKA">KORA NOILOUKA</option>';
+            LOCALITE_options_str  += '<option value="KORAN">KORAN</option>';
+            LOCALITE_options_str  += '<option value="KORDIÉ CENTRE">KORDIÉ CENTRE</option>';
+            LOCALITE_options_str  += '<option value="KORINDIAKA">KORINDIAKA</option>';
+            LOCALITE_options_str  += '<option value="KORIZENA">KORIZENA</option>';
+            LOCALITE_options_str  += '<option value="KOSSOUGOUDOU">KOSSOUGOUDOU</option>';
+            LOCALITE_options_str  += '<option value="KOTI">KOTI</option>';
+            LOCALITE_options_str  += '<option value="KOUAKOULI">KOUAKOULI</option>';
+            LOCALITE_options_str  += '<option value="KOUANKIN">KOUANKIN</option>';
+            LOCALITE_options_str  += '<option value="KOUBA CENTRE">KOUBA CENTRE</option>';
+            LOCALITE_options_str  += '<option value="KOUBELALPHA">KOUBELALPHA</option>';
+            LOCALITE_options_str  += '<option value="KOUBRI PK 25">KOUBRI PK 25</option>';
+            LOCALITE_options_str  += '<option value="KOUDOUGOU/ SECTEUR1">KOUDOUGOU/ SECTEUR1</option>';
+            LOCALITE_options_str  += '<option value="KOUENA">KOUENA</option>';
+            LOCALITE_options_str  += '<option value="KOUINI">KOUINI</option>';
+            LOCALITE_options_str  += '<option value="KOUKA">KOUKA</option>';
+            LOCALITE_options_str  += '<option value="KOUKA 3">KOUKA 3</option>';
+            LOCALITE_options_str  += '<option value="KOUKIN">KOUKIN</option>';
+            LOCALITE_options_str  += '<option value="KOULAKOU">KOULAKOU</option>';
+            LOCALITE_options_str  += '<option value="KOULANGOU">KOULANGOU</option>';
+            LOCALITE_options_str  += '<option value="KOULMASGA">KOULMASGA</option>';
+            LOCALITE_options_str  += '<option value="KOULNATENGA">KOULNATENGA</option>';
+            LOCALITE_options_str  += '<option value="KOULNIERE">KOULNIERE</option>';
+            LOCALITE_options_str  += '<option value="KOULOGHO">KOULOGHO</option>';
+            LOCALITE_options_str  += '<option value="KOULPORE">KOULPORE</option>';
+            LOCALITE_options_str  += '<option value="KOUMBANGO">KOUMBANGO</option>';
+            LOCALITE_options_str  += '<option value="KOUMBANGOU">KOUMBANGOU</option>';
+            LOCALITE_options_str  += '<option value="KOUMBIA (1)">KOUMBIA (1)</option>';
+            LOCALITE_options_str  += '<option value="KOUMBIA (2)">KOUMBIA (2)</option>';
+            LOCALITE_options_str  += '<option value="KOUMBIA (3)">KOUMBIA (3)</option>';
+            LOCALITE_options_str  += '<option value="KOUNANDIA">KOUNANDIA</option>';
+            LOCALITE_options_str  += '<option value="KOUPELA">KOUPELA</option>';
+            LOCALITE_options_str  += '<option value="KOUPELA-NIMPOUY">KOUPELA-NIMPOUY</option>';
+            LOCALITE_options_str  += '<option value="KOUPELE">KOUPELE</option>';
+            LOCALITE_options_str  += '<option value="KOURAO">KOURAO</option>';
+            LOCALITE_options_str  += '<option value="KOURI">KOURI</option>';
+            LOCALITE_options_str  += '<option value="KOUSSOGUIN">KOUSSOGUIN</option>';
+            LOCALITE_options_str  += '<option value="KOYELI/ NABOAMOU">KOYELI/ NABOAMOU</option>';
+            LOCALITE_options_str  += '<option value="KPADIARI">KPADIARI</option>';
+            LOCALITE_options_str  += '<option value="KPEDIA">KPEDIA</option>';
+            LOCALITE_options_str  += '<option value="KPENKANKANTI">KPENKANKANTI</option>';
+            LOCALITE_options_str  += '<option value="KPOLO">KPOLO</option>';
+            LOCALITE_options_str  += '<option value="KWARMANGUEL">KWARMANGUEL</option>';
+            LOCALITE_options_str  += '<option value="LABARA">LABARA</option>';
+            LOCALITE_options_str  += '<option value="LABARANI">LABARANI</option>';
+            LOCALITE_options_str  += '<option value="LADWENDA">LADWENDA</option>';
+            LOCALITE_options_str  += '<option value="LALGAYE ALG III">LALGAYE ALG III</option>';
+            LOCALITE_options_str  += '<option value="LAMDAMOL">LAMDAMOL</option>';
+            LOCALITE_options_str  += '<option value="LAMZOUDO SECT 5">LAMZOUDO SECT 5</option>';
+            LOCALITE_options_str  += '<option value="LANFIÈRA">LANFIÈRA</option>';
+            LOCALITE_options_str  += '<option value="LAPARA (16)">LAPARA (16)</option>';
+            LOCALITE_options_str  += '<option value="LAPARA (20)">LAPARA (20)</option>';
+            LOCALITE_options_str  += '<option value="LAPARA (21)">LAPARA (21)</option>';
+            LOCALITE_options_str  += '<option value="LARO 1">LARO 1</option>';
+            LOCALITE_options_str  += '<option value="LARO2">LARO2</option>';
+            LOCALITE_options_str  += '<option value="LARO3">LARO3</option>';
+            LOCALITE_options_str  += '<option value="LEABA">LEABA</option>';
+            LOCALITE_options_str  += '<option value="LELEXE">LELEXE</option>';
+            LOCALITE_options_str  += '<option value="LELLY">LELLY</option>';
+            LOCALITE_options_str  += '<option value="LEMINI">LEMINI</option>';
+            LOCALITE_options_str  += '<option value="LERE">LERE</option>';
+            LOCALITE_options_str  += '<option value="LERY">LERY</option>';
+            LOCALITE_options_str  += '<option value="LIA">LIA</option>';
+            LOCALITE_options_str  += '<option value="LIKI">LIKI</option>';
+            LOCALITE_options_str  += '<option value="LILIGUITENGA">LILIGUITENGA</option>';
+            LOCALITE_options_str  += '<option value="LILOUGOU">LILOUGOU</option>';
+            LOCALITE_options_str  += '<option value="LILYALA">LILYALA</option>';
+            LOCALITE_options_str  += '<option value="LIMANIA">LIMANIA</option>';
+            LOCALITE_options_str  += '<option value="LINDI">LINDI</option>';
+            LOCALITE_options_str  += '<option value="LIPTOUGOU">LIPTOUGOU</option>';
+            LOCALITE_options_str  += '<option value="LITIAYELI">LITIAYELI</option>';
+            LOCALITE_options_str  += '<option value="LOAGA">LOAGA</option>';
+            LOCALITE_options_str  += '<option value="LOBOUGA">LOBOUGA</option>';
+            LOCALITE_options_str  += '<option value="LOFFING">LOFFING</option>';
+            LOCALITE_options_str  += '<option value="LONBORI">LONBORI</option>';
+            LOCALITE_options_str  += '<option value="LONTIA">LONTIA</option>';
+            LOCALITE_options_str  += '<option value="LOROPENI">LOROPENI</option>';
+            LOCALITE_options_str  += '<option value="LOUARGOU">LOUARGOU</option>';
+            LOCALITE_options_str  += '<option value="LOUBA">LOUBA</option>';
+            LOCALITE_options_str  += '<option value="LOUDA">LOUDA</option>';
+            LOCALITE_options_str  += '<option value="MADOUBA">MADOUBA</option>';
+            LOCALITE_options_str  += '<option value="MAHOUANA">MAHOUANA</option>';
+            LOCALITE_options_str  += '<option value="MANGA">MANGA</option>';
+            LOCALITE_options_str  += '<option value="MANIDARA">MANIDARA</option>';
+            LOCALITE_options_str  += '<option value="MANINSE">MANINSE</option>';
+            LOCALITE_options_str  += '<option value="MANNI">MANNI</option>';
+            LOCALITE_options_str  += '<option value="MANSILA">MANSILA</option>';
+            LOCALITE_options_str  += '<option value="MANTIONGOGO">MANTIONGOGO</option>';
+            LOCALITE_options_str  += '<option value="MARGOU">MARGOU</option>';
+            LOCALITE_options_str  += '<option value="MARGUANTA">MARGUANTA</option>';
+            LOCALITE_options_str  += '<option value="MARKOYE">MARKOYE</option>';
+            LOCALITE_options_str  += '<option value="MASSKUY">MASSKUY</option>';
+            LOCALITE_options_str  += '<option value="MATIAKOALI">MATIAKOALI</option>';
+            LOCALITE_options_str  += '<option value="MEGUET">MEGUET</option>';
+            LOCALITE_options_str  += '<option value="MEKPA">MEKPA</option>';
+            LOCALITE_options_str  += '<option value="MEMER">MEMER</option>';
+            LOCALITE_options_str  += '<option value="MENEGOU">MENEGOU</option>';
+            LOCALITE_options_str  += '<option value="MEZAN">MEZAN</option>';
+            LOCALITE_options_str  += '<option value="MOADEGA">MOADEGA</option>';
+            LOCALITE_options_str  += '<option value="MOAKA">MOAKA</option>';
+            LOCALITE_options_str  += '<option value="MOALA">MOALA</option>';
+            LOCALITE_options_str  += '<option value="MODRE">MODRE</option>';
+            LOCALITE_options_str  += '<option value="MOGTEDO">MOGTEDO</option>';
+            LOCALITE_options_str  += '<option value="MOLLE">MOLLE</option>';
+            LOCALITE_options_str  += '<option value="MOLLE (SINIIMMOSE)">MOLLE (SINIIMMOSE)</option>';
+            LOCALITE_options_str  += '<option value="MOLLE KOTOU">MOLLE KOTOU</option>';
+            LOCALITE_options_str  += '<option value="MOLLE SINIMIMOSSE">MOLLE SINIMIMOSSE</option>';
+            LOCALITE_options_str  += '<option value="MONASTERE">MONASTERE</option>';
+            LOCALITE_options_str  += '<option value="MOU">MOU</option>';
+            LOCALITE_options_str  += '<option value="MOUGUE">MOUGUE</option>';
+            LOCALITE_options_str  += '<option value="MOUMA">MOUMA</option>';
+            LOCALITE_options_str  += '<option value="MOUNA">MOUNA</option>';
+            LOCALITE_options_str  += '<option value="MOUTORI / SECTEUR 1 DANO">MOUTORI / SECTEUR 1 DANO</option>';
+            LOCALITE_options_str  += '<option value="MOUTTI">MOUTTI</option>';
+            LOCALITE_options_str  += '<option value="MOUZI">MOUZI</option>';
+            LOCALITE_options_str  += '<option value="NABADOGO">NABADOGO</option>';
+            LOCALITE_options_str  += '<option value="NABAZANA">NABAZANA</option>';
+            LOCALITE_options_str  += '<option value="NABOAMOU">NABOAMOU</option>';
+            LOCALITE_options_str  += '<option value="NABOANDAGA">NABOANDAGA</option>';
+            LOCALITE_options_str  += '<option value="NABOU">NABOU</option>';
+            LOCALITE_options_str  += '<option value="NADIAGOU">NADIAGOU</option>';
+            LOCALITE_options_str  += '<option value="NAERENA">NAERENA</option>';
+            LOCALITE_options_str  += '<option value="NAGARE">NAGARE</option>';
+            LOCALITE_options_str  += '<option value="NAGBINGOU 1">NAGBINGOU 1</option>';
+            LOCALITE_options_str  += '<option value="NAGBINGOU 2">NAGBINGOU 2</option>';
+            LOCALITE_options_str  += '<option value="NAGNOAGOU">NAGNOAGOU</option>';
+            LOCALITE_options_str  += '<option value="NAGNOUDOUGOU">NAGNOUDOUGOU</option>';
+            LOCALITE_options_str  += '<option value="NAGREONGO">NAGREONGO</option>';
+            LOCALITE_options_str  += '<option value="NAGRIGRE">NAGRIGRE</option>';
+            LOCALITE_options_str  += '<option value="NAGTOLIE">NAGTOLIE</option>';
+            LOCALITE_options_str  += '<option value="NAHARTINGA">NAHARTINGA</option>';
+            LOCALITE_options_str  += '<option value="NAKIENTENGA">NAKIENTENGA</option>';
+            LOCALITE_options_str  += '<option value="NAKORTOUGOU">NAKORTOUGOU</option>';
+            LOCALITE_options_str  += '<option value="NAMAIGUIA">NAMAIGUIA</option>';
+            LOCALITE_options_str  += '<option value="NAMANEGUEMA">NAMANEGUEMA</option>';
+            LOCALITE_options_str  += '<option value="NAMBEGUIAN">NAMBEGUIAN</option>';
+            LOCALITE_options_str  += '<option value="NAMONTOUGOU">NAMONTOUGOU</option>';
+            LOCALITE_options_str  += '<option value="NAMOUNGOU">NAMOUNGOU</option>';
+            LOCALITE_options_str  += '<option value="NAMOUNGOU/TIABONLI">NAMOUNGOU/TIABONLI</option>';
+            LOCALITE_options_str  += '<option value="NAMOUNGOU/TIAMONLI">NAMOUNGOU/TIAMONLI</option>';
+            LOCALITE_options_str  += '<option value="NANANO">NANANO</option>';
+            LOCALITE_options_str  += '<option value="NANDIALA-CENTRE">NANDIALA-CENTRE</option>';
+            LOCALITE_options_str  += '<option value="NANE">NANE</option>';
+            LOCALITE_options_str  += '<option value="NANORO">NANORO</option>';
+            LOCALITE_options_str  += '<option value="NANOU (15)">NANOU (15)</option>';
+            LOCALITE_options_str  += '<option value="NAOUYA">NAOUYA</option>';
+            LOCALITE_options_str  += '<option value="NAOUYA (1)">NAOUYA (1)</option>';
+            LOCALITE_options_str  += '<option value="NAPALGUE">NAPALGUE</option>';
+            LOCALITE_options_str  += '<option value="NAPALGUE / SAGLA">NAPALGUE / SAGLA</option>';
+            LOCALITE_options_str  += '<option value="NARE">NARE</option>';
+            LOCALITE_options_str  += '<option value="NARIOU">NARIOU</option>';
+            LOCALITE_options_str  += '<option value="NAROKOUTIN">NAROKOUTIN</option>';
+            LOCALITE_options_str  += '<option value="NARÉ">NARÉ</option>';
+            LOCALITE_options_str  += '<option value="NASSOUGOU">NASSOUGOU</option>';
+            LOCALITE_options_str  += '<option value="NASSOULOU">NASSOULOU</option>';
+            LOCALITE_options_str  += '<option value="NATIABOANI">NATIABOANI</option>';
+            LOCALITE_options_str  += '<option value="NATIABOUNI">NATIABOUNI</option>';
+            LOCALITE_options_str  += '<option value="NATINGA">NATINGA</option>';
+            LOCALITE_options_str  += '<option value="NAVRINKPE">NAVRINKPE</option>';
+            LOCALITE_options_str  += '<option value="NEBLABOUMBOU">NEBLABOUMBOU</option>';
+            LOCALITE_options_str  += '<option value="NIAGASSI">NIAGASSI</option>';
+            LOCALITE_options_str  += '<option value="NIAMANGA">NIAMANGA</option>';
+            LOCALITE_options_str  += '<option value="NIAPTANA">NIAPTANA</option>';
+            LOCALITE_options_str  += '<option value="NIASSAM">NIASSAM</option>';
+            LOCALITE_options_str  += '<option value="NIBETEON">NIBETEON</option>';
+            LOCALITE_options_str  += '<option value="NICEO">NICEO</option>';
+            LOCALITE_options_str  += '<option value="NIDAAGA">NIDAAGA</option>';
+            LOCALITE_options_str  += '<option value="NIENA-DIONKELE">NIENA-DIONKELE</option>';
+            LOCALITE_options_str  += '<option value="NIMINA">NIMINA</option>';
+            LOCALITE_options_str  += '<option value="NIONFILA">NIONFILA</option>';
+            LOCALITE_options_str  += '<option value="NOALI">NOALI</option>';
+            LOCALITE_options_str  += '<option value="NOKUY">NOKUY</option>';
+            LOCALITE_options_str  += '<option value="NOMIKIDOUGOU">NOMIKIDOUGOU</option>';
+            LOCALITE_options_str  += '<option value="NONGOSOUM">NONGOSOUM</option>';
+            LOCALITE_options_str  += '<option value="NONGSOUM">NONGSOUM</option>';
+            LOCALITE_options_str  += '<option value="NOUDJALOEDENI">NOUDJALOEDENI</option>';
+            LOCALITE_options_str  += '<option value="OLARO">OLARO</option>';
+            LOCALITE_options_str  += '<option value="ORONKOUA">ORONKOUA</option>';
+            LOCALITE_options_str  += '<option value="OUADA V1">OUADA V1</option>';
+            LOCALITE_options_str  += '<option value="OUAGAMCE 1">OUAGAMCE 1</option>';
+            LOCALITE_options_str  += '<option value="OUAHABOU">OUAHABOU</option>';
+            LOCALITE_options_str  += '<option value="OUARGAYE PLAINE IRRIGUEE">OUARGAYE PLAINE IRRIGUEE</option>';
+            LOCALITE_options_str  += '<option value="OUARKOYE">OUARKOYE</option>';
+            LOCALITE_options_str  += '<option value="OUBRINOU">OUBRINOU</option>';
+            LOCALITE_options_str  += '<option value="OUESSA">OUESSA</option>';
+            LOCALITE_options_str  += '<option value="OUGAROU">OUGAROU</option>';
+            LOCALITE_options_str  += '<option value="OULA">OULA</option>';
+            LOCALITE_options_str  += '<option value="OULFO">OULFO</option>';
+            LOCALITE_options_str  += '<option value="OULO">OULO</option>';
+            LOCALITE_options_str  += '<option value="OUOROU">OUOROU</option>';
+            LOCALITE_options_str  += '<option value="OUPON">OUPON</option>';
+            LOCALITE_options_str  += '<option value="OUPOUGDENI">OUPOUGDENI</option>';
+            LOCALITE_options_str  += '<option value="OURO ESSO">OURO ESSO</option>';
+            LOCALITE_options_str  += '<option value="OURO-HESSO">OURO-HESSO</option>';
+            LOCALITE_options_str  += '<option value="OUROUKO">OUROUKO</option>';
+            LOCALITE_options_str  += '<option value="OUROWÉ/ YELKOTO">OUROWÉ/ YELKOTO</option>';
+            LOCALITE_options_str  += '<option value="OURSI">OURSI</option>';
+            LOCALITE_options_str  += '<option value="OURY">OURY</option>';
+            LOCALITE_options_str  += '<option value="OURY /DANABON">OURY /DANABON</option>';
+            LOCALITE_options_str  += '<option value="OURY /NANIEBON">OURY /NANIEBON</option>';
+            LOCALITE_options_str  += '<option value="OUÉZINDOUGOU">OUÉZINDOUGOU</option>';
+            LOCALITE_options_str  += '<option value="PAGOU GOURMA">PAGOU GOURMA</option>';
+            LOCALITE_options_str  += '<option value="PALADOUBE">PALADOUBE</option>';
+            LOCALITE_options_str  += '<option value="PAMA">PAMA</option>';
+            LOCALITE_options_str  += '<option value="PAPARSE">PAPARSE</option>';
+            LOCALITE_options_str  += '<option value="PAPATOUM">PAPATOUM</option>';
+            LOCALITE_options_str  += '<option value="PAPAYENGA">PAPAYENGA</option>';
+            LOCALITE_options_str  += '<option value="PARTIAGA">PARTIAGA</option>';
+            LOCALITE_options_str  += '<option value="PELCIA">PELCIA</option>';
+            LOCALITE_options_str  += '<option value="PELLA">PELLA</option>';
+            LOCALITE_options_str  += '<option value="PEMGNOA/BOUDERI">PEMGNOA/BOUDERI</option>';
+            LOCALITE_options_str  += '<option value="PENKADOUGOU">PENKADOUGOU</option>';
+            LOCALITE_options_str  += '<option value="PENSA">PENSA</option>';
+            LOCALITE_options_str  += '<option value="PETABOULIS">PETABOULIS</option>';
+            LOCALITE_options_str  += '<option value="PETEL-HABE">PETEL-HABE</option>';
+            LOCALITE_options_str  += '<option value="PIAGA">PIAGA</option>';
+            LOCALITE_options_str  += '<option value="PIROUKOU">PIROUKOU</option>';
+            LOCALITE_options_str  += '<option value="PISSAI">PISSAI</option>';
+            LOCALITE_options_str  += '<option value="PISSEGUEDIN">PISSEGUEDIN</option>';
+            LOCALITE_options_str  += '<option value="PITTENGA">PITTENGA</option>';
+            LOCALITE_options_str  += '<option value="PITTENGO">PITTENGO</option>';
+            LOCALITE_options_str  += '<option value="PLADOUBE">PLADOUBE</option>';
+            LOCALITE_options_str  += '<option value="POGNANKANRE">POGNANKANRE</option>';
+            LOCALITE_options_str  += '<option value="POGNINKOLI">POGNINKOLI</option>';
+            LOCALITE_options_str  += '<option value="POGOLI/NATINGA">POGOLI/NATINGA</option>';
+            LOCALITE_options_str  += '<option value="POKITOUGOU/BOUDIERI">POKITOUGOU/BOUDIERI</option>';
+            LOCALITE_options_str  += '<option value="POMEN (1)">POMEN (1)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (10)">POMEN (10)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (2)">POMEN (2)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (3)">POMEN (3)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (4)">POMEN (4)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (5)">POMEN (5)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (6)">POMEN (6)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (7)">POMEN (7)</option>';
+            LOCALITE_options_str  += '<option value="POMEN (9)">POMEN (9)</option>';
+            LOCALITE_options_str  += '<option value="PONIRO">PONIRO</option>';
+            LOCALITE_options_str  += '<option value="PONTIEBA">PONTIEBA</option>';
+            LOCALITE_options_str  += '<option value="PORI">PORI</option>';
+            LOCALITE_options_str  += '<option value="POUANKUY">POUANKUY</option>';
+            LOCALITE_options_str  += '<option value="POUGDIARI">POUGDIARI</option>';
+            LOCALITE_options_str  += '<option value="POUGOUMBIEL">POUGOUMBIEL</option>';
+            LOCALITE_options_str  += '<option value="POUNDOU">POUNDOU</option>';
+            LOCALITE_options_str  += '<option value="POUNKOUYAN">POUNKOUYAN</option>';
+            LOCALITE_options_str  += '<option value="POURA VILLAGE">POURA VILLAGE</option>';
+            LOCALITE_options_str  += '<option value="POUSGHIN">POUSGHIN</option>';
+            LOCALITE_options_str  += '<option value="POWENTENGA">POWENTENGA</option>';
+            LOCALITE_options_str  += '<option value="PRIWÉ">PRIWÉ</option>';
+            LOCALITE_options_str  += '<option value="PÂ/BARRAGE">PÂ/BARRAGE</option>';
+            LOCALITE_options_str  += '<option value="PÂ/SECTEUR 2">PÂ/SECTEUR 2</option>';
+            LOCALITE_options_str  += '<option value="RALO">RALO</option>';
+            LOCALITE_options_str  += '<option value="RAMBO WATINOOMA">RAMBO WATINOOMA</option>';
+            LOCALITE_options_str  += '<option value="RASINGA">RASINGA</option>';
+            LOCALITE_options_str  += '<option value="RETKOULGA">RETKOULGA</option>';
+            LOCALITE_options_str  += '<option value="RIHALO">RIHALO</option>';
+            LOCALITE_options_str  += '<option value="RISSAIAM">RISSAIAM</option>';
+            LOCALITE_options_str  += '<option value="ROLLO">ROLLO</option>';
+            LOCALITE_options_str  += '<option value="ROUNI">ROUNI</option>';
+            LOCALITE_options_str  += '<option value="SAABA">SAABA</option>';
+            LOCALITE_options_str  += '<option value="SAABA MOSSI">SAABA MOSSI</option>';
+            LOCALITE_options_str  += '<option value="SABTOCE">SABTOCE</option>';
+            LOCALITE_options_str  += '<option value="SADABA">SADABA</option>';
+            LOCALITE_options_str  += '<option value="SADON BOBO">SADON BOBO</option>';
+            LOCALITE_options_str  += '<option value="SAFE">SAFE</option>';
+            LOCALITE_options_str  += '<option value="SAGADOU">SAGADOU</option>';
+            LOCALITE_options_str  += '<option value="SAGOU">SAGOU</option>';
+            LOCALITE_options_str  += '<option value="SAGOÉTA">SAGOÉTA</option>';
+            LOCALITE_options_str  += '<option value="SAINT MICHEL">SAINT MICHEL</option>';
+            LOCALITE_options_str  += '<option value="SAKOANI">SAKOANI</option>';
+            LOCALITE_options_str  += '<option value="SAKOINSE">SAKOINSE</option>';
+            LOCALITE_options_str  += '<option value="SAKOU FOULBE">SAKOU FOULBE</option>';
+            LOCALITE_options_str  += '<option value="SAKOU MOSSI">SAKOU MOSSI</option>';
+            LOCALITE_options_str  += '<option value="SALA">SALA</option>';
+            LOCALITE_options_str  += '<option value="SALBISGO DAPOYA">SALBISGO DAPOYA</option>';
+            LOCALITE_options_str  += '<option value="SALGHO MOBEGA">SALGHO MOBEGA</option>';
+            LOCALITE_options_str  += '<option value="SALLE">SALLE</option>';
+            LOCALITE_options_str  += '<option value="SALO">SALO</option>';
+            LOCALITE_options_str  += '<option value="SALOGO MOBEGA">SALOGO MOBEGA</option>';
+            LOCALITE_options_str  += '<option value="SALSE">SALSE</option>';
+            LOCALITE_options_str  += '<option value="SAMA">SAMA</option>';
+            LOCALITE_options_str  += '<option value="SAMBAGOU">SAMBAGOU</option>';
+            LOCALITE_options_str  += '<option value="SAMBOANDI">SAMBOANDI</option>';
+            LOCALITE_options_str  += '<option value="SAMPELGA">SAMPELGA</option>';
+            LOCALITE_options_str  += '<option value="SANABA">SANABA</option>';
+            LOCALITE_options_str  += '<option value="SANDOGO">SANDOGO</option>';
+            LOCALITE_options_str  += '<option value="SANDOURE">SANDOURE</option>';
+            LOCALITE_options_str  += '<option value="SANEBA">SANEBA</option>';
+            LOCALITE_options_str  += '<option value="SANGA">SANGA</option>';
+            LOCALITE_options_str  += '<option value="SANKANDE">SANKANDE</option>';
+            LOCALITE_options_str  += '<option value="SANKOÉ">SANKOÉ</option>';
+            LOCALITE_options_str  += '<option value="SANON">SANON</option>';
+            LOCALITE_options_str  += '<option value="SANRGO">SANRGO</option>';
+            LOCALITE_options_str  += '<option value="SAOUGA">SAOUGA</option>';
+            LOCALITE_options_str  += '<option value="SARABOURA">SARABOURA</option>';
+            LOCALITE_options_str  += '<option value="SATTE">SATTE</option>';
+            LOCALITE_options_str  += '<option value="SAVILI">SAVILI</option>';
+            LOCALITE_options_str  += '<option value="SEBBA">SEBBA</option>';
+            LOCALITE_options_str  += '<option value="SEBEDOUGOU">SEBEDOUGOU</option>';
+            LOCALITE_options_str  += '<option value="SEBOUGA">SEBOUGA</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR 05">SECTEUR 05</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR 1">SECTEUR 1</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR 2">SECTEUR 2</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR 3 DANO">SECTEUR 3 DANO</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR 5">SECTEUR 5</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR NUMERO 1 ITENGA">SECTEUR NUMERO 1 ITENGA</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR NUMERO BLOC 2">SECTEUR NUMERO BLOC 2</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR NUMERO BLOC 3">SECTEUR NUMERO BLOC 3</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR NUMERO BLOC 4 ITENGA">SECTEUR NUMERO BLOC 4 ITENGA</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR N°1">SECTEUR N°1</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR N°4">SECTEUR N°4</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR N°5">SECTEUR N°5</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR5">SECTEUR5</option>';
+            LOCALITE_options_str  += '<option value="SECTEUR5/TOUGAN">SECTEUR5/TOUGAN</option>';
+            LOCALITE_options_str  += '<option value="SEIGA">SEIGA</option>';
+            LOCALITE_options_str  += '<option value="SEKOUANTOU">SEKOUANTOU</option>';
+            LOCALITE_options_str  += '<option value="SELINKORO">SELINKORO</option>';
+            LOCALITE_options_str  += '<option value="SENOBANI">SENOBANI</option>';
+            LOCALITE_options_str  += '<option value="SERGOUSSOUMA">SERGOUSSOUMA</option>';
+            LOCALITE_options_str  += '<option value="SETBTENGA">SETBTENGA</option>';
+            LOCALITE_options_str  += '<option value="SEYTENGA">SEYTENGA</option>';
+            LOCALITE_options_str  += '<option value="SIBERA">SIBERA</option>';
+            LOCALITE_options_str  += '<option value="SIEN">SIEN</option>';
+            LOCALITE_options_str  += '<option value="SIGNONGUIN">SIGNONGUIN</option>';
+            LOCALITE_options_str  += '<option value="SIGNONGUIN SECTEUR N°1">SIGNONGUIN SECTEUR N°1</option>';
+            LOCALITE_options_str  += '<option value="SIGNONGUIN SECTEUR N°1 FARA">SIGNONGUIN SECTEUR N°1 FARA</option>';
+            LOCALITE_options_str  += '<option value="SIKIRE">SIKIRE</option>';
+            LOCALITE_options_str  += '<option value="SILGUEYE">SILGUEYE</option>';
+            LOCALITE_options_str  += '<option value="SILLY">SILLY</option>';
+            LOCALITE_options_str  += '<option value="SILMIDOUGOU">SILMIDOUGOU</option>';
+            LOCALITE_options_str  += '<option value="SINCENE">SINCENE</option>';
+            LOCALITE_options_str  += '<option value="SINDE">SINDE</option>';
+            LOCALITE_options_str  += '<option value="SINGUI">SINGUI</option>';
+            LOCALITE_options_str  += '<option value="SIRABADALA">SIRABADALA</option>';
+            LOCALITE_options_str  += '<option value="SISSILI">SISSILI</option>';
+            LOCALITE_options_str  += '<option value="SIWI">SIWI</option>';
+            LOCALITE_options_str  += '<option value="SOAM">SOAM</option>';
+            LOCALITE_options_str  += '<option value="SOAW">SOAW</option>';
+            LOCALITE_options_str  += '<option value="SOAW/TANGLONGO">SOAW/TANGLONGO</option>';
+            LOCALITE_options_str  += '<option value="SOGODJANKOLI">SOGODJANKOLI</option>';
+            LOCALITE_options_str  += '<option value="SOLENZO /SECTEUR2">SOLENZO /SECTEUR2</option>';
+            LOCALITE_options_str  += '<option value="SOLENZO /SECTEUR4">SOLENZO /SECTEUR4</option>';
+            LOCALITE_options_str  += '<option value="SOLENZO/SECTEUR 3">SOLENZO/SECTEUR 3</option>';
+            LOCALITE_options_str  += '<option value="SOMDAMESSOM KOROGHO">SOMDAMESSOM KOROGHO</option>';
+            LOCALITE_options_str  += '<option value="SOMDE">SOMDE</option>';
+            LOCALITE_options_str  += '<option value="SOMÉ">SOMÉ</option>';
+            LOCALITE_options_str  += '<option value="SONGDEN">SONGDEN</option>';
+            LOCALITE_options_str  += '<option value="SONGTAABA / TANSOBENTENGA">SONGTAABA / TANSOBENTENGA</option>';
+            LOCALITE_options_str  += '<option value="SOOTENGA">SOOTENGA</option>';
+            LOCALITE_options_str  += '<option value="SORGOU">SORGOU</option>';
+            LOCALITE_options_str  += '<option value="SOUAGA">SOUAGA</option>';
+            LOCALITE_options_str  += '<option value="SOUBEIRA NATENGA">SOUBEIRA NATENGA</option>';
+            LOCALITE_options_str  += '<option value="SOUGOUDOU">SOUGOUDOU</option>';
+            LOCALITE_options_str  += '<option value="SOULA">SOULA</option>';
+            LOCALITE_options_str  += '<option value="SOULTENGA">SOULTENGA</option>';
+            LOCALITE_options_str  += '<option value="SOURGOU">SOURGOU</option>';
+            LOCALITE_options_str  += '<option value="SOUROUNGOU">SOUROUNGOU</option>';
+            LOCALITE_options_str  += '<option value="SYNTHIOROKUY">SYNTHIOROKUY</option>';
+            LOCALITE_options_str  += '<option value="SÉBOUN">SÉBOUN</option>';
+            LOCALITE_options_str  += '<option value="SÉMAGA">SÉMAGA</option>';
+            LOCALITE_options_str  += '<option value="TABOU">TABOU</option>';
+            LOCALITE_options_str  += '<option value="TAFOGO">TAFOGO</option>';
+            LOCALITE_options_str  += '<option value="TAGOU">TAGOU</option>';
+            LOCALITE_options_str  += '<option value="TAKOAGOU">TAKOAGOU</option>';
+            LOCALITE_options_str  += '<option value="TAKOULO">TAKOULO</option>';
+            LOCALITE_options_str  += '<option value="TALABIRA">TALABIRA</option>';
+            LOCALITE_options_str  += '<option value="TAMBANGOU">TAMBANGOU</option>';
+            LOCALITE_options_str  += '<option value="TAMBARGA">TAMBARGA</option>';
+            LOCALITE_options_str  += '<option value="TAMBIGA">TAMBIGA</option>';
+            LOCALITE_options_str  += '<option value="TAMBOIANA">TAMBOIANA</option>';
+            LOCALITE_options_str  += '<option value="TAMBOKO">TAMBOKO</option>';
+            LOCALITE_options_str  += '<option value="TAMBOURBANGOU">TAMBOURBANGOU</option>';
+            LOCALITE_options_str  += '<option value="TAMISSI">TAMISSI</option>';
+            LOCALITE_options_str  += '<option value="TAMNERE">TAMNERE</option>';
+            LOCALITE_options_str  += '<option value="TAMPEDOU">TAMPEDOU</option>';
+            LOCALITE_options_str  += '<option value="TAMPIENI">TAMPIENI</option>';
+            LOCALITE_options_str  += '<option value="TAMPORIO SECTEUR 04">TAMPORIO SECTEUR 04</option>';
+            LOCALITE_options_str  += '<option value="TANGA SOUKA">TANGA SOUKA</option>';
+            LOCALITE_options_str  += '<option value="TANGAYE">TANGAYE</option>';
+            LOCALITE_options_str  += '<option value="TANGHIN">TANGHIN</option>';
+            LOCALITE_options_str  += '<option value="TANGHIN WOBDO">TANGHIN WOBDO</option>';
+            LOCALITE_options_str  += '<option value="TANGUIGA">TANGUIGA</option>';
+            LOCALITE_options_str  += '<option value="TANI">TANI</option>';
+            LOCALITE_options_str  += '<option value="TANKOU">TANKOU</option>';
+            LOCALITE_options_str  += '<option value="TANKOU2">TANKOU2</option>';
+            LOCALITE_options_str  += '<option value="TANKOU4">TANKOU4</option>';
+            LOCALITE_options_str  += '<option value="TANTIABONGOU">TANTIABONGOU</option>';
+            LOCALITE_options_str  += '<option value="TAPLARA">TAPLARA</option>';
+            LOCALITE_options_str  += '<option value="TAPOA  BARRAGE">TAPOA  BARRAGE</option>';
+            LOCALITE_options_str  += '<option value="TARAMA">TARAMA</option>';
+            LOCALITE_options_str  += '<option value="TARE">TARE</option>';
+            LOCALITE_options_str  += '<option value="TASMAKATT">TASMAKATT</option>';
+            LOCALITE_options_str  += '<option value="TCHELEL">TCHELEL</option>';
+            LOCALITE_options_str  += '<option value="TENSOBTENGA">TENSOBTENGA</option>';
+            LOCALITE_options_str  += '<option value="TENSOUKA">TENSOUKA</option>';
+            LOCALITE_options_str  += '<option value="THION">THION</option>';
+            LOCALITE_options_str  += '<option value="TIALE">TIALE</option>';
+            LOCALITE_options_str  += '<option value="TIANGOU">TIANGOU</option>';
+            LOCALITE_options_str  += '<option value="TIANTIABOULIS">TIANTIABOULIS</option>';
+            LOCALITE_options_str  += '<option value="TIBGA">TIBGA</option>';
+            LOCALITE_options_str  += '<option value="TIBIN">TIBIN</option>';
+            LOCALITE_options_str  += '<option value="TIBRELA">TIBRELA</option>';
+            LOCALITE_options_str  += '<option value="TIEHALEDJI">TIEHALEDJI</option>';
+            LOCALITE_options_str  += '<option value="TIERE">TIERE</option>';
+            LOCALITE_options_str  += '<option value="TIGBONDE">TIGBONDE</option>';
+            LOCALITE_options_str  += '<option value="TIGUILI">TIGUILI</option>';
+            LOCALITE_options_str  += '<option value="TIKONTI">TIKONTI</option>';
+            LOCALITE_options_str  += '<option value="TIKOUNDI">TIKOUNDI</option>';
+            LOCALITE_options_str  += '<option value="TILONTI">TILONTI</option>';
+            LOCALITE_options_str  += '<option value="TIN-AGADEL">TIN-AGADEL</option>';
+            LOCALITE_options_str  += '<option value="TIN-AKOFF">TIN-AKOFF</option>';
+            LOCALITE_options_str  += '<option value="TINDANE">TINDANE</option>';
+            LOCALITE_options_str  += '<option value="TINDANE BILANGA">TINDANE BILANGA</option>';
+            LOCALITE_options_str  += '<option value="TIO">TIO</option>';
+            LOCALITE_options_str  += '<option value="TIOGO MOUHOUN">TIOGO MOUHOUN</option>';
+            LOCALITE_options_str  += '<option value="TIOHOMBOADO">TIOHOMBOADO</option>';
+            LOCALITE_options_str  += '<option value="TIONGO-PANI">TIONGO-PANI</option>';
+            LOCALITE_options_str  += '<option value="TIONGOKPELI">TIONGOKPELI</option>';
+            LOCALITE_options_str  += '<option value="TIONKOPANI">TIONKOPANI</option>';
+            LOCALITE_options_str  += '<option value="TIOUMA">TIOUMA</option>';
+            LOCALITE_options_str  += '<option value="TIOYO">TIOYO</option>';
+            LOCALITE_options_str  += '<option value="TITA 1">TITA 1</option>';
+            LOCALITE_options_str  += '<option value="TITA2">TITA2</option>';
+            LOCALITE_options_str  += '<option value="TIYALO">TIYALO</option>';
+            LOCALITE_options_str  += '<option value="TO">TO</option>';
+            LOCALITE_options_str  += '<option value="TOLEPSI">TOLEPSI</option>';
+            LOCALITE_options_str  += '<option value="TOLOMPO">TOLOMPO</option>';
+            LOCALITE_options_str  += '<option value="TOMA">TOMA</option>';
+            LOCALITE_options_str  += '<option value="TONDIATA">TONDIATA</option>';
+            LOCALITE_options_str  += '<option value="TONON">TONON</option>';
+            LOCALITE_options_str  += '<option value="TOUBA">TOUBA</option>';
+            LOCALITE_options_str  += '<option value="TOUGOURI">TOUGOURI</option>';
+            LOCALITE_options_str  += '<option value="TOUKA-BAYEL">TOUKA-BAYEL</option>';
+            LOCALITE_options_str  += '<option value="TOUKOUDOUGA">TOUKOUDOUGA</option>';
+            LOCALITE_options_str  += '<option value="TOUNGO">TOUNGO</option>';
+            LOCALITE_options_str  += '<option value="TOYENDE">TOYENDE</option>';
+            LOCALITE_options_str  += '<option value="TUIRE">TUIRE</option>';
+            LOCALITE_options_str  += '<option value="TÉKOUROU">TÉKOUROU</option>';
+            LOCALITE_options_str  += '<option value="VILLY">VILLY</option>';
+            LOCALITE_options_str  += '<option value="VOAGA">VOAGA</option>';
+            LOCALITE_options_str  += '<option value="VÉLIA/BAOGHIN">VÉLIA/BAOGHIN</option>';
+            LOCALITE_options_str  += '<option value="WAHABLE">WAHABLE</option>';
+            LOCALITE_options_str  += '<option value="WALAMBI">WALAMBI</option>';
+            LOCALITE_options_str  += '<option value="WAMPEGA">WAMPEGA</option>';
+            LOCALITE_options_str  += '<option value="WAN">WAN</option>';
+            LOCALITE_options_str  += '<option value="WARDOGO">WARDOGO</option>';
+            LOCALITE_options_str  += '<option value="WATINOMA">WATINOMA</option>';
+            LOCALITE_options_str  += '<option value="WAVOUSSE">WAVOUSSE</option>';
+            LOCALITE_options_str  += '<option value="WEDBILA">WEDBILA</option>';
+            LOCALITE_options_str  += '<option value="WOULMASSADOU">WOULMASSADOU</option>';
+            LOCALITE_options_str  += '<option value="YABA">YABA</option>';
+            LOCALITE_options_str  += '<option value="YABO">YABO</option>';
+            LOCALITE_options_str  += '<option value="YAIKA">YAIKA</option>';
+            LOCALITE_options_str  += '<option value="YAKEBE">YAKEBE</option>';
+            LOCALITE_options_str  += '<option value="YALGATENGA">YALGATENGA</option>';
+            LOCALITE_options_str  += '<option value="YALGO">YALGO</option>';
+            LOCALITE_options_str  += '<option value="YAMBA">YAMBA</option>';
+            LOCALITE_options_str  += '<option value="YAMBA-CENTRE">YAMBA-CENTRE</option>';
+            LOCALITE_options_str  += '<option value="YANGOUELA">YANGOUELA</option>';
+            LOCALITE_options_str  += '<option value="YAOGUEN">YAOGUEN</option>';
+            LOCALITE_options_str  += '<option value="YAONGO">YAONGO</option>';
+            LOCALITE_options_str  += '<option value="YARAKUY">YARAKUY</option>';
+            LOCALITE_options_str  += '<option value="YARGA">YARGA</option>';
+            LOCALITE_options_str  += '<option value="YATENGA">YATENGA</option>';
+            LOCALITE_options_str  += '<option value="YATTAKOU">YATTAKOU</option>';
+            LOCALITE_options_str  += '<option value="YELKOTO">YELKOTO</option>';
+            LOCALITE_options_str  += '<option value="YEMSENDENI">YEMSENDENI</option>';
+            LOCALITE_options_str  += '<option value="YERESSORO">YERESSORO</option>';
+            LOCALITE_options_str  += '<option value="YEROPOROU">YEROPOROU</option>';
+            LOCALITE_options_str  += '<option value="YIMIOUGOU">YIMIOUGOU</option>';
+            LOCALITE_options_str  += '<option value="YO CENTRE">YO CENTRE</option>';
+            LOCALITE_options_str  += '<option value="YOBODIN">YOBODIN</option>';
+            LOCALITE_options_str  += '<option value="YOUGPANGOU">YOUGPANGOU</option>';
+            LOCALITE_options_str  += '<option value="YOUROUNA">YOUROUNA</option>';
+            LOCALITE_options_str  += '<option value="YÈRÈSSORO">YÈRÈSSORO</option>';
+            LOCALITE_options_str  += '<option value="ZAMO">ZAMO</option>';
+            LOCALITE_options_str  += '<option value="ZANA">ZANA</option>';
+            LOCALITE_options_str  += '<option value="ZANDKOUM">ZANDKOUM</option>';
+            LOCALITE_options_str  += '<option value="ZANGOGO">ZANGOGO</option>';
+            LOCALITE_options_str  += '<option value="ZEGUEDEGUIN">ZEGUEDEGUIN</option>';
+            LOCALITE_options_str  += '<option value="ZEKEZE">ZEKEZE</option>';
+            LOCALITE_options_str  += '<option value="ZIBAKO">ZIBAKO</option>';
+            LOCALITE_options_str  += '<option value="ZIGA">ZIGA</option>';
+            LOCALITE_options_str  += '<option value="ZIGLA SECTEUR I">ZIGLA SECTEUR I</option>';
+            LOCALITE_options_str  += '<option value="ZILGLA / SECTEUR 1">ZILGLA / SECTEUR 1</option>';
+            LOCALITE_options_str  += '<option value="ZIMTANGA">ZIMTANGA</option>';
+            LOCALITE_options_str  += '<option value="ZINAKONGO">ZINAKONGO</option>';
+            LOCALITE_options_str  += '<option value="ZINGANE">ZINGANE</option>';
+            LOCALITE_options_str  += '<option value="ZIRBAHION">ZIRBAHION</option>';
+            LOCALITE_options_str  += '<option value="ZON">ZON</option>';
+            LOCALITE_options_str  += '<option value="ZONATENGA">ZONATENGA</option>';
+            LOCALITE_options_str  += '<option value="ZORKOUM">ZORKOUM</option>';
+            LOCALITE_options_str  += '<option value="ZORKOUMHOLOGO">ZORKOUMHOLOGO</option>';
+            LOCALITE_options_str  += '<option value="ZOUNGAWYE">ZOUNGAWYE</option>';
+            LOCALITE_options_str  += '<option value="ZOUNGOU">ZOUNGOU</option>';
+            LOCALITE_options_str  += '<option value="ZOURMA">ZOURMA</option>';
+            LOCALITE_options_str  += '<option value="ZUGUEDEGUIN NITENGA 1">ZUGUEDEGUIN NITENGA 1</option>';
+            LOCALITE_options_str  += '<option value="ZÉOULA">ZÉOULA</option>';
+            sel_LOCALITE.innerHTML = LOCALITE_options_str;
+            div_LOCALITE.appendChild(sel_LOCALITE);
+            var lab_LOCALITE = document.createElement('div');
+            lab_LOCALITE.innerHTML = 'LOCALITE';
+            lab_LOCALITE.className = 'filterlabel';
+            div_LOCALITE.appendChild(lab_LOCALITE);
+            var reset_LOCALITE = document.createElement('div');
+            reset_LOCALITE.innerHTML = 'clear filter';
+            reset_LOCALITE.className = 'filterlabel';
+            reset_LOCALITE.onclick = function() {
+                var options = document.getElementById("sel_LOCALITE").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_LOCALITE.appendChild(reset_LOCALITE);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_NOM_SITE = document.createElement('div');
+            div_NOM_SITE.id = "div_NOM_SITE";
+            div_NOM_SITE.className= "filterselect";
+            document.getElementById("menu").appendChild(div_NOM_SITE);
+            sel_NOM_SITE = document.createElement('select');
+            sel_NOM_SITE.multiple = true;
+            sel_NOM_SITE.size = 10;
+            sel_NOM_SITE.id = "sel_NOM_SITE";
+            var NOM_SITE_options_str = "<option value='' unselected></option>";
+            sel_NOM_SITE.onchange = function(){filterFunc()};
+            NOM_SITE_options_str  += '<option value="NULL">NULL</option>';
+            NOM_SITE_options_str  += '<option value="6S">6S</option>';
+            NOM_SITE_options_str  += '<option value="ALG III">ALG III</option>';
+            NOM_SITE_options_str  += '<option value="AMSIA">AMSIA</option>';
+            NOM_SITE_options_str  += '<option value="ANCIEN SITE">ANCIEN SITE</option>';
+            NOM_SITE_options_str  += '<option value="ANSD">ANSD</option>';
+            NOM_SITE_options_str  += '<option value="ARFA DE TIDANE YANGA">ARFA DE TIDANE YANGA</option>';
+            NOM_SITE_options_str  += '<option value="ARSANTIGUA">ARSANTIGUA</option>';
+            NOM_SITE_options_str  += '<option value="BAABOU">BAABOU</option>';
+            NOM_SITE_options_str  += '<option value="BABONGA">BABONGA</option>';
+            NOM_SITE_options_str  += '<option value="BAD-FOND DE PICOFA">BAD-FOND DE PICOFA</option>';
+            NOM_SITE_options_str  += '<option value="BADALA">BADALA</option>';
+            NOM_SITE_options_str  += '<option value="BAKATA">BAKATA</option>';
+            NOM_SITE_options_str  += '<option value="BALINGA">BALINGA</option>';
+            NOM_SITE_options_str  += '<option value="BANANERAIE LARO">BANANERAIE LARO</option>';
+            NOM_SITE_options_str  += '<option value="BANATI">BANATI</option>';
+            NOM_SITE_options_str  += '<option value="BANDIEDAGA">BANDIEDAGA</option>';
+            NOM_SITE_options_str  += '<option value="BANGA">BANGA</option>';
+            NOM_SITE_options_str  += '<option value="BANGRE">BANGRE</option>';
+            NOM_SITE_options_str  += '<option value="BANGSIN">BANGSIN</option>';
+            NOM_SITE_options_str  += '<option value="BANGUISOM">BANGUISOM</option>';
+            NOM_SITE_options_str  += '<option value="BANI">BANI</option>';
+            NOM_SITE_options_str  += '<option value="BANIZOUMBOU">BANIZOUMBOU</option>';
+            NOM_SITE_options_str  += '<option value="BANKOUMA">BANKOUMA</option>';
+            NOM_SITE_options_str  += '<option value="BANOGO">BANOGO</option>';
+            NOM_SITE_options_str  += '<option value="BANTEGOU">BANTEGOU</option>';
+            NOM_SITE_options_str  += '<option value="BANWA">BANWA</option>';
+            NOM_SITE_options_str  += '<option value="BAOGHIN">BAOGHIN</option>';
+            NOM_SITE_options_str  += '<option value="BAOGO">BAOGO</option>';
+            NOM_SITE_options_str  += '<option value="BAONGUI">BAONGUI</option>';
+            NOM_SITE_options_str  += '<option value="BAONGUIN">BAONGUIN</option>';
+            NOM_SITE_options_str  += '<option value="BAOUZPORE RIZICOLE">BAOUZPORE RIZICOLE</option>';
+            NOM_SITE_options_str  += '<option value="BAPLA 1">BAPLA 1</option>';
+            NOM_SITE_options_str  += '<option value="BAPLA 2">BAPLA 2</option>';
+            NOM_SITE_options_str  += '<option value="BAPLA-BIRIFOR">BAPLA-BIRIFOR</option>';
+            NOM_SITE_options_str  += '<option value="BARBALAMANOU">BARBALAMANOU</option>';
+            NOM_SITE_options_str  += '<option value="BARGA/ LAC BAM">BARGA/ LAC BAM</option>';
+            NOM_SITE_options_str  += '<option value="BARGO">BARGO</option>';
+            NOM_SITE_options_str  += '<option value="BARGO/LAC BAM">BARGO/LAC BAM</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE FADA/PERIMETRE MARAICHER">BARRAGE DE FADA/PERIMETRE MARAICHER</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE KOUNBANGOU">BARRAGE DE KOUNBANGOU</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE LILGOURI">BARRAGE DE LILGOURI</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE LIPTOUGOU">BARRAGE DE LIPTOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE MOU">BARRAGE DE MOU</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE PÂ">BARRAGE DE PÂ</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE SALA">BARRAGE DE SALA</option>';
+            NOM_SITE_options_str  += '<option value="BARRAGE DE TARE">BARRAGE DE TARE</option>';
+            NOM_SITE_options_str  += '<option value="BARSA">BARSA</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND">BAS FOND</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND DE BABOULI">BAS FOND DE BABOULI</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND DE BANKUARI">BAS FOND DE BANKUARI</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND DE DJOGOTA">BAS FOND DE DJOGOTA</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND DE GODO">BAS FOND DE GODO</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND DE KOGODI">BAS FOND DE KOGODI</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND DE TCHIELOYE">BAS FOND DE TCHIELOYE</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND RIZICOL DE KANTARI">BAS FOND RIZICOL DE KANTARI</option>';
+            NOM_SITE_options_str  += '<option value="BAS FOND SE KOGUINA">BAS FOND SE KOGUINA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FON DE YAMBA">BAS-FON DE YAMBA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND">BAS-FOND</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND AMELIORE DE LILOUGOU">BAS-FOND AMELIORE DE LILOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND AMENAGER DE DIYALE 2">BAS-FOND AMENAGER DE DIYALE 2</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND AMENAGER DE KOUADOUGOU">BAS-FOND AMENAGER DE KOUADOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE BAMPOURINGA">BAS-FOND DE BAMPOURINGA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE BANI">BAS-FOND DE BANI</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE BOULA">BAS-FOND DE BOULA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE DAKE">BAS-FOND DE DAKE</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE DEBOUDA 1">BAS-FOND DE DEBOUDA 1</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE DIONFIRGA">BAS-FOND DE DIONFIRGA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE DIYALA 1">BAS-FOND DE DIYALA 1</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE DJAMBORIGA">BAS-FOND DE DJAMBORIGA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE GOMPONSGO">BAS-FOND DE GOMPONSGO</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE GOMPONSGO 1">BAS-FOND DE GOMPONSGO 1</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE GOMPONSGO 2">BAS-FOND DE GOMPONSGO 2</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE GOUÉRÉ">BAS-FOND DE GOUÉRÉ</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE MASSAKUY">BAS-FOND DE MASSAKUY</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE NAERENA">BAS-FOND DE NAERENA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE POKA">BAS-FOND DE POKA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE RIZ">BAS-FOND DE RIZ</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE RIZ (PAM) DE NANDIALA">BAS-FOND DE RIZ (PAM) DE NANDIALA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE SAPOUTENGA">BAS-FOND DE SAPOUTENGA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE SOUGOUDOU">BAS-FOND DE SOUGOUDOU</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE TAMPOUNDIN">BAS-FOND DE TAMPOUNDIN</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE TCHILARI">BAS-FOND DE TCHILARI</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND DE TIBADI">BAS-FOND DE TIBADI</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND NOUVEAU">BAS-FOND NOUVEAU</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND OGABOM">BAS-FOND OGABOM</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND PAMANLI">BAS-FOND PAMANLI</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND PAPSA">BAS-FOND PAPSA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND PRP DE BAOGHIN">BAS-FOND PRP DE BAOGHIN</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND RIGICOLE DE SERGOUSSOUMA">BAS-FOND RIGICOLE DE SERGOUSSOUMA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND RIZICOLE DE TIBRELA">BAS-FOND RIZICOLE DE TIBRELA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND SORGHA 1">BAS-FOND SORGHA 1</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND YEEBI">BAS-FOND YEEBI</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FOND ZIGA">BAS-FOND ZIGA</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FONDS">BAS-FONDS</option>';
+            NOM_SITE_options_str  += '<option value="BAS-FONDS DE BORO">BAS-FONDS DE BORO</option>';
+            NOM_SITE_options_str  += '<option value="BASFONDS DE TINA">BASFONDS DE TINA</option>';
+            NOM_SITE_options_str  += '<option value="BASWEDI">BASWEDI</option>';
+            NOM_SITE_options_str  += '<option value="BATONDO">BATONDO</option>';
+            NOM_SITE_options_str  += '<option value="BAYEND FOULGO">BAYEND FOULGO</option>';
+            NOM_SITE_options_str  += '<option value="BEKUY">BEKUY</option>';
+            NOM_SITE_options_str  += '<option value="BELE">BELE</option>';
+            NOM_SITE_options_str  += '<option value="BENABIN">BENABIN</option>';
+            NOM_SITE_options_str  += '<option value="BENDOUGOU">BENDOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="BENGWOOGO">BENGWOOGO</option>';
+            NOM_SITE_options_str  += '<option value="BENHOURGOU ACF">BENHOURGOU ACF</option>';
+            NOM_SITE_options_str  += '<option value="BIEF C">BIEF C</option>';
+            NOM_SITE_options_str  += '<option value="BIEF D">BIEF D</option>';
+            NOM_SITE_options_str  += '<option value="BIEF E">BIEF E</option>';
+            NOM_SITE_options_str  += '<option value="BIKPIBEBAA">BIKPIBEBAA</option>';
+            NOM_SITE_options_str  += '<option value="BILANGA-YANGA">BILANGA-YANGA</option>';
+            NOM_SITE_options_str  += '<option value="BISSERKE">BISSERKE</option>';
+            NOM_SITE_options_str  += '<option value="BLADI 2">BLADI 2</option>';
+            NOM_SITE_options_str  += '<option value="BLOC 8">BLOC 8</option>';
+            NOM_SITE_options_str  += '<option value="BMF DE TAMBANGO">BMF DE TAMBANGO</option>';
+            NOM_SITE_options_str  += '<option value="BOALA">BOALA</option>';
+            NOM_SITE_options_str  += '<option value="BOALIN 2">BOALIN 2</option>';
+            NOM_SITE_options_str  += '<option value="BOANDGA">BOANDGA</option>';
+            NOM_SITE_options_str  += '<option value="BOGONAM">BOGONAM</option>';
+            NOM_SITE_options_str  += '<option value="BOINKOUBOUGA">BOINKOUBOUGA</option>';
+            NOM_SITE_options_str  += '<option value="BOKUY">BOKUY</option>';
+            NOM_SITE_options_str  += '<option value="BOLA">BOLA</option>';
+            NOM_SITE_options_str  += '<option value="BOLARE">BOLARE</option>';
+            NOM_SITE_options_str  += '<option value="BOLEMBAR">BOLEMBAR</option>';
+            NOM_SITE_options_str  += '<option value="BOLI DE NARA">BOLI DE NARA</option>';
+            NOM_SITE_options_str  += '<option value="BOLIEL">BOLIEL</option>';
+            NOM_SITE_options_str  += '<option value="BOLORE">BOLORE</option>';
+            NOM_SITE_options_str  += '<option value="BOMBARA">BOMBARA</option>';
+            NOM_SITE_options_str  += '<option value="BOMOANGA">BOMOANGA</option>';
+            NOM_SITE_options_str  += '<option value="BOMUY">BOMUY</option>';
+            NOM_SITE_options_str  += '<option value="BONGAMA">BONGAMA</option>';
+            NOM_SITE_options_str  += '<option value="BORBOULI">BORBOULI</option>';
+            NOM_SITE_options_str  += '<option value="BORO">BORO</option>';
+            NOM_SITE_options_str  += '<option value="BOTOU">BOTOU</option>';
+            NOM_SITE_options_str  += '<option value="BOTOU 2">BOTOU 2</option>';
+            NOM_SITE_options_str  += '<option value="BOUARI">BOUARI</option>';
+            NOM_SITE_options_str  += '<option value="BOUDANE">BOUDANE</option>';
+            NOM_SITE_options_str  += '<option value="BOUDJARE">BOUDJARE</option>';
+            NOM_SITE_options_str  += '<option value="BOUKOUMA">BOUKOUMA</option>';
+            NOM_SITE_options_str  += '<option value="BOUKTENGA">BOUKTENGA</option>';
+            NOM_SITE_options_str  += '<option value="BOULBI">BOULBI</option>';
+            NOM_SITE_options_str  += '<option value="BOULI DE BANDIÉDAGA">BOULI DE BANDIÉDAGA</option>';
+            NOM_SITE_options_str  += '<option value="BOULI DE DAMDÉGOU">BOULI DE DAMDÉGOU</option>';
+            NOM_SITE_options_str  += '<option value="BOULI MARAICHER DE BOULOYE">BOULI MARAICHER DE BOULOYE</option>';
+            NOM_SITE_options_str  += '<option value="BOULI MARAICHER DE DANTCHADI">BOULI MARAICHER DE DANTCHADI</option>';
+            NOM_SITE_options_str  += '<option value="BOULI MARAICHER DE TOUKA-BAYEL">BOULI MARAICHER DE TOUKA-BAYEL</option>';
+            NOM_SITE_options_str  += '<option value="BOULIMARAICHER DE DJOMGA">BOULIMARAICHER DE DJOMGA</option>';
+            NOM_SITE_options_str  += '<option value="BOULIS DE IBAO">BOULIS DE IBAO</option>';
+            NOM_SITE_options_str  += '<option value="BOULIS MARAICHER">BOULIS MARAICHER</option>';
+            NOM_SITE_options_str  += '<option value="BOULIS MARAICHER DE DEBERE-TALATA">BOULIS MARAICHER DE DEBERE-TALATA</option>';
+            NOM_SITE_options_str  += '<option value="BOULIS MARAICHER DE KODIOLAYE">BOULIS MARAICHER DE KODIOLAYE</option>';
+            NOM_SITE_options_str  += '<option value="BOULISRE">BOULISRE</option>';
+            NOM_SITE_options_str  += '<option value="BOUNGOUFOULGOU">BOUNGOUFOULGOU</option>';
+            NOM_SITE_options_str  += '<option value="BOUNGOUFOULGOU 04">BOUNGOUFOULGOU 04</option>';
+            NOM_SITE_options_str  += '<option value="BOURZANGA SECTEUR 6">BOURZANGA SECTEUR 6</option>';
+            NOM_SITE_options_str  += '<option value="BOUSSANSE 2">BOUSSANSE 2</option>';
+            NOM_SITE_options_str  += '<option value="BOUSSANSE GRILLAGE">BOUSSANSE GRILLAGE</option>';
+            NOM_SITE_options_str  += '<option value="BOUSSOUGOU / KOURGA">BOUSSOUGOU / KOURGA</option>';
+            NOM_SITE_options_str  += '<option value="BOUTIOUROU">BOUTIOUROU</option>';
+            NOM_SITE_options_str  += '<option value="BSSONGUIN">BSSONGUIN</option>';
+            NOM_SITE_options_str  += '<option value="CCL">CCL</option>';
+            NOM_SITE_options_str  += '<option value="COMABADE">COMABADE</option>';
+            NOM_SITE_options_str  += '<option value="DABALI-TIGUI">DABALI-TIGUI</option>';
+            NOM_SITE_options_str  += '<option value="DABIOU">DABIOU</option>';
+            NOM_SITE_options_str  += '<option value="DABIÉDA">DABIÉDA</option>';
+            NOM_SITE_options_str  += '<option value="DADONE">DADONE</option>';
+            NOM_SITE_options_str  += '<option value="DAFIRE">DAFIRE</option>';
+            NOM_SITE_options_str  += '<option value="DAKPOLO GOMPAR">DAKPOLO GOMPAR</option>';
+            NOM_SITE_options_str  += '<option value="DAMAKOUO">DAMAKOUO</option>';
+            NOM_SITE_options_str  += '<option value="DAOUTOUGOU">DAOUTOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="DAPELGO">DAPELGO</option>';
+            NOM_SITE_options_str  += '<option value="DARABIDE">DARABIDE</option>';
+            NOM_SITE_options_str  += '<option value="DARBITIN BAS FOND">DARBITIN BAS FOND</option>';
+            NOM_SITE_options_str  += '<option value="DARGO">DARGO</option>';
+            NOM_SITE_options_str  += '<option value="DARIGMA">DARIGMA</option>';
+            NOM_SITE_options_str  += '<option value="DARODINE">DARODINE</option>';
+            NOM_SITE_options_str  += '<option value="DASSANGA">DASSANGA</option>';
+            NOM_SITE_options_str  += '<option value="DASSARI">DASSARI</option>';
+            NOM_SITE_options_str  += '<option value="DI">DI</option>';
+            NOM_SITE_options_str  += '<option value="DIABO ALI">DIABO ALI</option>';
+            NOM_SITE_options_str  += '<option value="DIAKA">DIAKA</option>';
+            NOM_SITE_options_str  += '<option value="DIAKA MARECHERE">DIAKA MARECHERE</option>';
+            NOM_SITE_options_str  += '<option value="DIAKO 2">DIAKO 2</option>';
+            NOM_SITE_options_str  += '<option value="DIAPAGA BARRAGE">DIAPAGA BARRAGE</option>';
+            NOM_SITE_options_str  += '<option value="DIDRO">DIDRO</option>';
+            NOM_SITE_options_str  += '<option value="DIMA">DIMA</option>';
+            NOM_SITE_options_str  += '<option value="DINA">DINA</option>';
+            NOM_SITE_options_str  += '<option value="DINIYA">DINIYA</option>';
+            NOM_SITE_options_str  += '<option value="DIOMSOGUI PRP">DIOMSOGUI PRP</option>';
+            NOM_SITE_options_str  += '<option value="DIORO">DIORO</option>';
+            NOM_SITE_options_str  += '<option value="DIOUM">DIOUM</option>';
+            NOM_SITE_options_str  += '<option value="DIPIENGA">DIPIENGA</option>';
+            NOM_SITE_options_str  += '<option value="DJAM BOULIS">DJAM BOULIS</option>';
+            NOM_SITE_options_str  += '<option value="DJAM OURI">DJAM OURI</option>';
+            NOM_SITE_options_str  += '<option value="DJAMOASSISSI">DJAMOASSISSI</option>';
+            NOM_SITE_options_str  += '<option value="DJIBO">DJIBO</option>';
+            NOM_SITE_options_str  += '<option value="DJIKANDO">DJIKANDO</option>';
+            NOM_SITE_options_str  += '<option value="DJONA-BOONGO">DJONA-BOONGO</option>';
+            NOM_SITE_options_str  += '<option value="DOLO">DOLO</option>';
+            NOM_SITE_options_str  += '<option value="DONSIN">DONSIN</option>';
+            NOM_SITE_options_str  += '<option value="DOROGO">DOROGO</option>';
+            NOM_SITE_options_str  += '<option value="DOUGRE/ LAC BAM">DOUGRE/ LAC BAM</option>';
+            NOM_SITE_options_str  += '<option value="DOULI">DOULI</option>';
+            NOM_SITE_options_str  += '<option value="DÉBÉ">DÉBÉ</option>';
+            NOM_SITE_options_str  += '<option value="ECOLE CATHOLIQUE">ECOLE CATHOLIQUE</option>';
+            NOM_SITE_options_str  += '<option value="ECOLE DES FEMMES DE KOMBOARI">ECOLE DES FEMMES DE KOMBOARI</option>';
+            NOM_SITE_options_str  += '<option value="ECOLE DES FEMMES DE MODRE">ECOLE DES FEMMES DE MODRE</option>';
+            NOM_SITE_options_str  += '<option value="ECOLE DES FEMMES DE TCHOMBOADO">ECOLE DES FEMMES DE TCHOMBOADO</option>';
+            NOM_SITE_options_str  += '<option value="ECOLE FERME DES FEMMES DE YEMSENDENI">ECOLE FERME DES FEMMES DE YEMSENDENI</option>';
+            NOM_SITE_options_str  += '<option value="FAFO">FAFO</option>';
+            NOM_SITE_options_str  += '<option value="FAKOUNA">FAKOUNA</option>';
+            NOM_SITE_options_str  += '<option value="FANGOU">FANGOU</option>';
+            NOM_SITE_options_str  += '<option value="FANGOU BOSSALLI">FANGOU BOSSALLI</option>';
+            NOM_SITE_options_str  += '<option value="FANGOU EXTENSION">FANGOU EXTENSION</option>';
+            NOM_SITE_options_str  += '<option value="FAO">FAO</option>';
+            NOM_SITE_options_str  += '<option value="FDO MONO">FDO MONO</option>';
+            NOM_SITE_options_str  += '<option value="FELEWÉ">FELEWÉ</option>';
+            NOM_SITE_options_str  += '<option value="FERME AGROPASTORALE DE BENDOUGOU">FERME AGROPASTORALE DE BENDOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="FERME ECOLE DES FEMMES DE FONGUIN">FERME ECOLE DES FEMMES DE FONGUIN</option>';
+            NOM_SITE_options_str  += '<option value="FERME ECOLE DES FEMMES DE TAKOAGOU">FERME ECOLE DES FEMMES DE TAKOAGOU</option>';
+            NOM_SITE_options_str  += '<option value="FETEL BAOUDOUL">FETEL BAOUDOUL</option>';
+            NOM_SITE_options_str  += '<option value="FJA">FJA</option>';
+            NOM_SITE_options_str  += '<option value="FOUDIGA">FOUDIGA</option>';
+            NOM_SITE_options_str  += '<option value="FROUDI">FROUDI</option>';
+            NOM_SITE_options_str  += '<option value="FUIRI">FUIRI</option>';
+            NOM_SITE_options_str  += '<option value="GAGNOU">GAGNOU</option>';
+            NOM_SITE_options_str  += '<option value="GANSE">GANSE</option>';
+            NOM_SITE_options_str  += '<option value="GASKAYE">GASKAYE</option>';
+            NOM_SITE_options_str  += '<option value="GASSIN">GASSIN</option>';
+            NOM_SITE_options_str  += '<option value="GAZANDOURE">GAZANDOURE</option>';
+            NOM_SITE_options_str  += '<option value="GNAMANKELE">GNAMANKELE</option>';
+            NOM_SITE_options_str  += '<option value="GNITIGBA">GNITIGBA</option>';
+            NOM_SITE_options_str  += '<option value="GOAMBANLI">GOAMBANLI</option>';
+            NOM_SITE_options_str  += '<option value="GODIN">GODIN</option>';
+            NOM_SITE_options_str  += '<option value="GODIN OUALOGTENGA">GODIN OUALOGTENGA</option>';
+            NOM_SITE_options_str  += '<option value="GOMDE-MOSSI">GOMDE-MOSSI</option>';
+            NOM_SITE_options_str  += '<option value="GONGA">GONGA</option>';
+            NOM_SITE_options_str  += '<option value="GONSE">GONSE</option>';
+            NOM_SITE_options_str  += '<option value="GORIN">GORIN</option>';
+            NOM_SITE_options_str  += '<option value="GOSSON">GOSSON</option>';
+            NOM_SITE_options_str  += '<option value="GOUE">GOUE</option>';
+            NOM_SITE_options_str  += '<option value="GOUIM">GOUIM</option>';
+            NOM_SITE_options_str  += '<option value="GOUNDRY">GOUNDRY</option>';
+            NOM_SITE_options_str  += '<option value="GPR/BARKORO">GPR/BARKORO</option>';
+            NOM_SITE_options_str  += '<option value="GRAND SITE MARAICHER DE SAOUGA (UFC)">GRAND SITE MARAICHER DE SAOUGA (UFC)</option>';
+            NOM_SITE_options_str  += '<option value="GROUPEMENT MARAICHER">GROUPEMENT MARAICHER</option>';
+            NOM_SITE_options_str  += '<option value="GROUPEMENT PENKATOUGOU">GROUPEMENT PENKATOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="GROUPEMENT TAMBIGA">GROUPEMENT TAMBIGA</option>';
+            NOM_SITE_options_str  += '<option value="GUIBARE">GUIBARE</option>';
+            NOM_SITE_options_str  += '<option value="GUIGUI">GUIGUI</option>';
+            NOM_SITE_options_str  += '<option value="GUIMOU">GUIMOU</option>';
+            NOM_SITE_options_str  += '<option value="HAABA">HAABA</option>';
+            NOM_SITE_options_str  += '<option value="HAABA 10">HAABA 10</option>';
+            NOM_SITE_options_str  += '<option value="HAABA 3">HAABA 3</option>';
+            NOM_SITE_options_str  += '<option value="HAABA 4">HAABA 4</option>';
+            NOM_SITE_options_str  += '<option value="HAABA 6">HAABA 6</option>';
+            NOM_SITE_options_str  += '<option value="HAABA 8">HAABA 8</option>';
+            NOM_SITE_options_str  += '<option value="HABA">HABA</option>';
+            NOM_SITE_options_str  += '<option value="HIGA">HIGA</option>';
+            NOM_SITE_options_str  += '<option value="HOLOGO">HOLOGO</option>';
+            NOM_SITE_options_str  += '<option value="ITENGA BLOC NUMERO 1">ITENGA BLOC NUMERO 1</option>';
+            NOM_SITE_options_str  += '<option value="ITENGA BLOC NUMERO 2">ITENGA BLOC NUMERO 2</option>';
+            NOM_SITE_options_str  += '<option value="ITENGA BLOC NUMERO 3">ITENGA BLOC NUMERO 3</option>';
+            NOM_SITE_options_str  += '<option value="ITENGA BLOC NUMERO 4">ITENGA BLOC NUMERO 4</option>';
+            NOM_SITE_options_str  += '<option value="IVIDIÉ">IVIDIÉ</option>';
+            NOM_SITE_options_str  += '<option value="JARDI MARAÏCHER DU GRP BENKADI DE DARSALAM">JARDI MARAÏCHER DU GRP BENKADI DE DARSALAM</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN">JARDIN</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN AMB">JARDIN AMB</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN AMENAGE DE BOULKNABOOGEN">JARDIN AMENAGE DE BOULKNABOOGEN</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN ATAD">JARDIN ATAD</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN BEFEN 2  SALAKI DE NIMINA">JARDIN BEFEN 2  SALAKI DE NIMINA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN BEFEN 2 DE BIRON MARKA">JARDIN BEFEN 2 DE BIRON MARKA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN BEOG NERE">JARDIN BEOG NERE</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN COMMUNAL">JARDIN COMMUNAL</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE BONGA">JARDIN DE BONGA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE DIOMENA">JARDIN DE DIOMENA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE DOLO">JARDIN DE DOLO</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE GALOLÉ">JARDIN DE GALOLÉ</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE IOLONIORO">JARDIN DE IOLONIORO</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE KIRA">JARDIN DE KIRA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE KOUSSOGUIN">JARDIN DE KOUSSOGUIN</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE L&apos;ECOLE DE GOUNIAN">JARDIN DE L&apos;ECOLE DE GOUNIAN</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE LELLY">JARDIN DE LELLY</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE LERE">JARDIN DE LERE</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE LIMANIA">JARDIN DE LIMANIA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE LOMPO LEOPOLD">JARDIN DE LOMPO LEOPOLD</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE MOUGUE">JARDIN DE MOUGUE</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE NASSOURI FORDIA">JARDIN DE NASSOURI FORDIA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE OUALI ISSAKA">JARDIN DE OUALI ISSAKA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE OULFO">JARDIN DE OULFO</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE SANOU FRANÇOIS">JARDIN DE SANOU FRANÇOIS</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE SANTE">JARDIN DE SANTE</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE SANTE/SIBJOAGA">JARDIN DE SANTE/SIBJOAGA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE SARABOURA">JARDIN DE SARABOURA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE TAMBOURBAGOU">JARDIN DE TAMBOURBAGOU</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE THIONBIANO LAMOUDIA">JARDIN DE THIONBIANO LAMOUDIA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE TIEKA">JARDIN DE TIEKA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE TIGBANI">JARDIN DE TIGBANI</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE WEREM">JARDIN DE WEREM</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DE YANTENGA">JARDIN DE YANTENGA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DES FEMME DE YABA">JARDIN DES FEMME DE YABA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN DU BARRAGE DE BATIE">JARDIN DU BARRAGE DE BATIE</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN FAMILIAL- ISSA">JARDIN FAMILIAL- ISSA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN FIDA DE KPEDJA">JARDIN FIDA DE KPEDJA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN GOUNIAN MOSSILIÈ">JARDIN GOUNIAN MOSSILIÈ</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN LAGUEMTAAB LA YONDO">JARDIN LAGUEMTAAB LA YONDO</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN MARACHER DE BAGMASKIERGA">JARDIN MARACHER DE BAGMASKIERGA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN MARAICHER">JARDIN MARAICHER</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN MARAICHER 1 DE GOUNIAN">JARDIN MARAICHER 1 DE GOUNIAN</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN MARAICHER DE ITAORÉ">JARDIN MARAICHER DE ITAORÉ</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN MARAICHER KOAIYRI">JARDIN MARAICHER KOAIYRI</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN MARAICHER MOSSINPIÈ">JARDIN MARAICHER MOSSINPIÈ</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN MARAÎCHER DE KAMSI">JARDIN MARAÎCHER DE KAMSI</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN NUTRITIF">JARDIN NUTRITIF</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN NUTRITIF DE FOUFOU">JARDIN NUTRITIF DE FOUFOU</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN NUTRITIF FAO">JARDIN NUTRITIF FAO</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN PABSO DE KPEDJA">JARDIN PABSO DE KPEDJA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN PEM LON DE KAMBA">JARDIN PEM LON DE KAMBA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN PEM-LON DE NIMINA">JARDIN PEM-LON DE NIMINA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN PIGEPE DE TAMPORIO">JARDIN PIGEPE DE TAMPORIO</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN PIGIPE DU SECTEUR 5">JARDIN PIGIPE DU SECTEUR 5</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN POGDAMANÉGRÉ">JARDIN POGDAMANÉGRÉ</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN SACSA/AMUS DE NANDIALA">JARDIN SACSA/AMUS DE NANDIALA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN SACSA/AMUS DE TIBRELA">JARDIN SACSA/AMUS DE TIBRELA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN SALAKI DE KAMBA">JARDIN SALAKI DE KAMBA</option>';
+            NOM_SITE_options_str  += '<option value="JARDIN YAYA POPSY DIALLO">JARDIN YAYA POPSY DIALLO</option>';
+            NOM_SITE_options_str  += '<option value="KABIÉ">KABIÉ</option>';
+            NOM_SITE_options_str  += '<option value="KABOUDA">KABOUDA</option>';
+            NOM_SITE_options_str  += '<option value="KADOMBA">KADOMBA</option>';
+            NOM_SITE_options_str  += '<option value="KAKIM">KAKIM</option>';
+            NOM_SITE_options_str  += '<option value="KALITAGHIN">KALITAGHIN</option>';
+            NOM_SITE_options_str  += '<option value="KAMBRADENI">KAMBRADENI</option>';
+            NOM_SITE_options_str  += '<option value="KAMPTI-LOBI">KAMPTI-LOBI</option>';
+            NOM_SITE_options_str  += '<option value="KANKANIBA">KANKANIBA</option>';
+            NOM_SITE_options_str  += '<option value="KANRE">KANRE</option>';
+            NOM_SITE_options_str  += '<option value="KANTCHARI CENTRE">KANTCHARI CENTRE</option>';
+            NOM_SITE_options_str  += '<option value="KANTOUGO">KANTOUGO</option>';
+            NOM_SITE_options_str  += '<option value="KAONGO">KAONGO</option>';
+            NOM_SITE_options_str  += '<option value="KAPENEM BOONGO">KAPENEM BOONGO</option>';
+            NOM_SITE_options_str  += '<option value="KARA HEREDOUGON">KARA HEREDOUGON</option>';
+            NOM_SITE_options_str  += '<option value="KARG BOULA">KARG BOULA</option>';
+            NOM_SITE_options_str  += '<option value="KARIO 1">KARIO 1</option>';
+            NOM_SITE_options_str  += '<option value="KASSAGUAI">KASSAGUAI</option>';
+            NOM_SITE_options_str  += '<option value="KASSAKONGO">KASSAKONGO</option>';
+            NOM_SITE_options_str  += '<option value="KASSAKONGO N°1">KASSAKONGO N°1</option>';
+            NOM_SITE_options_str  += '<option value="KASSAN">KASSAN</option>';
+            NOM_SITE_options_str  += '<option value="KATENGA BOOGO">KATENGA BOOGO</option>';
+            NOM_SITE_options_str  += '<option value="KAYAO">KAYAO</option>';
+            NOM_SITE_options_str  += '<option value="KAYEROBO">KAYEROBO</option>';
+            NOM_SITE_options_str  += '<option value="KEEKOL">KEEKOL</option>';
+            NOM_SITE_options_str  += '<option value="KEMENA">KEMENA</option>';
+            NOM_SITE_options_str  += '<option value="KIAKIAMOUGOU">KIAKIAMOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="KIENDBINGRE">KIENDBINGRE</option>';
+            NOM_SITE_options_str  += '<option value="KIENRE">KIENRE</option>';
+            NOM_SITE_options_str  += '<option value="KIERMA">KIERMA</option>';
+            NOM_SITE_options_str  += '<option value="KIKO">KIKO</option>';
+            NOM_SITE_options_str  += '<option value="KILOU">KILOU</option>';
+            NOM_SITE_options_str  += '<option value="KINGBARA">KINGBARA</option>';
+            NOM_SITE_options_str  += '<option value="KINGO">KINGO</option>';
+            NOM_SITE_options_str  += '<option value="KIRKIAGA">KIRKIAGA</option>';
+            NOM_SITE_options_str  += '<option value="KISSIRIGOIM">KISSIRIGOIM</option>';
+            NOM_SITE_options_str  += '<option value="KIÈ">KIÈ</option>';
+            NOM_SITE_options_str  += '<option value="KOALA">KOALA</option>';
+            NOM_SITE_options_str  += '<option value="KOALAMPIE">KOALAMPIE</option>';
+            NOM_SITE_options_str  += '<option value="KOANDA MAMOUDOU">KOANDA MAMOUDOU</option>';
+            NOM_SITE_options_str  += '<option value="KOASSANGA">KOASSANGA</option>';
+            NOM_SITE_options_str  += '<option value="KOBADAR">KOBADAR</option>';
+            NOM_SITE_options_str  += '<option value="KOBGO">KOBGO</option>';
+            NOM_SITE_options_str  += '<option value="KOBSERE">KOBSERE</option>';
+            NOM_SITE_options_str  += '<option value="KODOUGOU">KODOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="KOFING">KOFING</option>';
+            NOM_SITE_options_str  += '<option value="KOGNERE">KOGNERE</option>';
+            NOM_SITE_options_str  += '<option value="KOGNERE SOS SAHEL">KOGNERE SOS SAHEL</option>';
+            NOM_SITE_options_str  += '<option value="KOKOAGA">KOKOAGA</option>';
+            NOM_SITE_options_str  += '<option value="KOKORO PIE">KOKORO PIE</option>';
+            NOM_SITE_options_str  += '<option value="KOLGODIESSE">KOLGODIESSE</option>';
+            NOM_SITE_options_str  += '<option value="KOLIGDI">KOLIGDI</option>';
+            NOM_SITE_options_str  += '<option value="KOLIGIDI">KOLIGIDI</option>';
+            NOM_SITE_options_str  += '<option value="KOLOGKOM">KOLOGKOM</option>';
+            NOM_SITE_options_str  += '<option value="KOMANDOUGOU BAS FOND">KOMANDOUGOU BAS FOND</option>';
+            NOM_SITE_options_str  += '<option value="KOMBELGO">KOMBELGO</option>';
+            NOM_SITE_options_str  += '<option value="KOMSILGA">KOMSILGA</option>';
+            NOM_SITE_options_str  += '<option value="KOMSILGA/ LAC BAM">KOMSILGA/ LAC BAM</option>';
+            NOM_SITE_options_str  += '<option value="KOMSILGA/GOUMSI">KOMSILGA/GOUMSI</option>';
+            NOM_SITE_options_str  += '<option value="KONDIBO">KONDIBO</option>';
+            NOM_SITE_options_str  += '<option value="KONIOUDOU">KONIOUDOU</option>';
+            NOM_SITE_options_str  += '<option value="KONIOUDOU 2">KONIOUDOU 2</option>';
+            NOM_SITE_options_str  += '<option value="KOOM LA VIIM">KOOM LA VIIM</option>';
+            NOM_SITE_options_str  += '<option value="KOPER">KOPER</option>';
+            NOM_SITE_options_str  += '<option value="KOPOIE">KOPOIE</option>';
+            NOM_SITE_options_str  += '<option value="KORINDIAKA">KORINDIAKA</option>';
+            NOM_SITE_options_str  += '<option value="KOTI">KOTI</option>';
+            NOM_SITE_options_str  += '<option value="KOUBRI">KOUBRI</option>';
+            NOM_SITE_options_str  += '<option value="KOUKA">KOUKA</option>';
+            NOM_SITE_options_str  += '<option value="KOULNATENGA">KOULNATENGA</option>';
+            NOM_SITE_options_str  += '<option value="KOUMBANGOU">KOUMBANGOU</option>';
+            NOM_SITE_options_str  += '<option value="KOUMBIA">KOUMBIA</option>';
+            NOM_SITE_options_str  += '<option value="KOUNKOUBGHIN">KOUNKOUBGHIN</option>';
+            NOM_SITE_options_str  += '<option value="KOUNTANI">KOUNTANI</option>';
+            NOM_SITE_options_str  += '<option value="KOUPELE">KOUPELE</option>';
+            NOM_SITE_options_str  += '<option value="KOURA1">KOURA1</option>';
+            NOM_SITE_options_str  += '<option value="KOURA2">KOURA2</option>';
+            NOM_SITE_options_str  += '<option value="KOURFAGEL">KOURFAGEL</option>';
+            NOM_SITE_options_str  += '<option value="KOURILIMOUBAGOU">KOURILIMOUBAGOU</option>';
+            NOM_SITE_options_str  += '<option value="KOUSSO PORE">KOUSSO PORE</option>';
+            NOM_SITE_options_str  += '<option value="KOUSSOGHIN">KOUSSOGHIN</option>';
+            NOM_SITE_options_str  += '<option value="KOUSSOGHUIN BOULIS">KOUSSOGHUIN BOULIS</option>';
+            NOM_SITE_options_str  += '<option value="KPOLO">KPOLO</option>';
+            NOM_SITE_options_str  += '<option value="LABARA">LABARA</option>';
+            NOM_SITE_options_str  += '<option value="LAC BAM">LAC BAM</option>';
+            NOM_SITE_options_str  += '<option value="LADWENDA">LADWENDA</option>';
+            NOM_SITE_options_str  += '<option value="LAGUEM NOOMA">LAGUEM NOOMA</option>';
+            NOM_SITE_options_str  += '<option value="LARO BANANERAIE">LARO BANANERAIE</option>';
+            NOM_SITE_options_str  += '<option value="LARRE">LARRE</option>';
+            NOM_SITE_options_str  += '<option value="LELCOM">LELCOM</option>';
+            NOM_SITE_options_str  += '<option value="LELEXE">LELEXE</option>';
+            NOM_SITE_options_str  += '<option value="LERY">LERY</option>';
+            NOM_SITE_options_str  += '<option value="LIA">LIA</option>';
+            NOM_SITE_options_str  += '<option value="LIKI">LIKI</option>';
+            NOM_SITE_options_str  += '<option value="LIKI FOULCE">LIKI FOULCE</option>';
+            NOM_SITE_options_str  += '<option value="LILOUGOU">LILOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="LOAGA">LOAGA</option>';
+            NOM_SITE_options_str  += '<option value="LOBA">LOBA</option>';
+            NOM_SITE_options_str  += '<option value="LOBOUGA">LOBOUGA</option>';
+            NOM_SITE_options_str  += '<option value="LONANGO">LONANGO</option>';
+            NOM_SITE_options_str  += '<option value="LONTANLI">LONTANLI</option>';
+            NOM_SITE_options_str  += '<option value="LOUDON">LOUDON</option>';
+            NOM_SITE_options_str  += '<option value="M&apos;BI">M&apos;BI</option>';
+            NOM_SITE_options_str  += '<option value="MADORI">MADORI</option>';
+            NOM_SITE_options_str  += '<option value="MADOUBA">MADOUBA</option>';
+            NOM_SITE_options_str  += '<option value="MAISON D&apos;ARRET ET DE CORRESTION DE KOUDODOUGOU">MAISON D&apos;ARRET ET DE CORRESTION DE KOUDODOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="MALANPIE JANDIN">MALANPIE JANDIN</option>';
+            NOM_SITE_options_str  += '<option value="MANGA AMONT">MANGA AMONT</option>';
+            NOM_SITE_options_str  += '<option value="MANGA AVAL 1">MANGA AVAL 1</option>';
+            NOM_SITE_options_str  += '<option value="MANGA AVAL 2">MANGA AVAL 2</option>';
+            NOM_SITE_options_str  += '<option value="MANINSE">MANINSE</option>';
+            NOM_SITE_options_str  += '<option value="MANNI 03">MANNI 03</option>';
+            NOM_SITE_options_str  += '<option value="MARAICHECULTURE">MARAICHECULTURE</option>';
+            NOM_SITE_options_str  += '<option value="MARE BAONGO 3">MARE BAONGO 3</option>';
+            NOM_SITE_options_str  += '<option value="MARGOU">MARGOU</option>';
+            NOM_SITE_options_str  += '<option value="MASSADENI">MASSADENI</option>';
+            NOM_SITE_options_str  += '<option value="MEGUET">MEGUET</option>';
+            NOM_SITE_options_str  += '<option value="MEMER">MEMER</option>';
+            NOM_SITE_options_str  += '<option value="MISSION CHATOLIQUE MODRE 1">MISSION CHATOLIQUE MODRE 1</option>';
+            NOM_SITE_options_str  += '<option value="MOAKA PICOFA">MOAKA PICOFA</option>';
+            NOM_SITE_options_str  += '<option value="MOBEGA">MOBEGA</option>';
+            NOM_SITE_options_str  += '<option value="MOLE SINIMIMOSSE">MOLE SINIMIMOSSE</option>';
+            NOM_SITE_options_str  += '<option value="MOLLE">MOLLE</option>';
+            NOM_SITE_options_str  += '<option value="MOLLE SANKE">MOLLE SANKE</option>';
+            NOM_SITE_options_str  += '<option value="MOLLE SINIMIMOSSE">MOLLE SINIMIMOSSE</option>';
+            NOM_SITE_options_str  += '<option value="MONASTERE">MONASTERE</option>';
+            NOM_SITE_options_str  += '<option value="MOOLIGOU">MOOLIGOU</option>';
+            NOM_SITE_options_str  += '<option value="MOPIENGA JARDIN">MOPIENGA JARDIN</option>';
+            NOM_SITE_options_str  += '<option value="MOUHOUN II">MOUHOUN II</option>';
+            NOM_SITE_options_str  += '<option value="MOUI BANGRE">MOUI BANGRE</option>';
+            NOM_SITE_options_str  += '<option value="MOUNA">MOUNA</option>';
+            NOM_SITE_options_str  += '<option value="MOUTORI">MOUTORI</option>';
+            NOM_SITE_options_str  += '<option value="MTM">MTM</option>';
+            NOM_SITE_options_str  += '<option value="N&apos;DARGA">N&apos;DARGA</option>';
+            NOM_SITE_options_str  += '<option value="NAABA BAONGO">NAABA BAONGO</option>';
+            NOM_SITE_options_str  += '<option value="NAABYIRI">NAABYIRI</option>';
+            NOM_SITE_options_str  += '<option value="NABAONGO">NABAONGO</option>';
+            NOM_SITE_options_str  += '<option value="NABAZANA">NABAZANA</option>';
+            NOM_SITE_options_str  += '<option value="NABE BONGO;KOUTOUKANDE">NABE BONGO;KOUTOUKANDE</option>';
+            NOM_SITE_options_str  += '<option value="NAFONCLI">NAFONCLI</option>';
+            NOM_SITE_options_str  += '<option value="NAGRIGRE A">NAGRIGRE A</option>';
+            NOM_SITE_options_str  += '<option value="NAGTOLIE">NAGTOLIE</option>';
+            NOM_SITE_options_str  += '<option value="NAHAMBOUGA">NAHAMBOUGA</option>';
+            NOM_SITE_options_str  += '<option value="NAHARTINGA">NAHARTINGA</option>';
+            NOM_SITE_options_str  += '<option value="NAKIDOU">NAKIDOU</option>';
+            NOM_SITE_options_str  += '<option value="NAMAGRI">NAMAGRI</option>';
+            NOM_SITE_options_str  += '<option value="NAMANEGUEMA">NAMANEGUEMA</option>';
+            NOM_SITE_options_str  += '<option value="NAMBEGUIAN">NAMBEGUIAN</option>';
+            NOM_SITE_options_str  += '<option value="NANANO">NANANO</option>';
+            NOM_SITE_options_str  += '<option value="NAOUYA (NANANERAIE)">NAOUYA (NANANERAIE)</option>';
+            NOM_SITE_options_str  += '<option value="NAPONSIGA">NAPONSIGA</option>';
+            NOM_SITE_options_str  += '<option value="NARIOU">NARIOU</option>';
+            NOM_SITE_options_str  += '<option value="NAROKOUTIN">NAROKOUTIN</option>';
+            NOM_SITE_options_str  += '<option value="NATIADOU">NATIADOU</option>';
+            NOM_SITE_options_str  += '<option value="NATURAMA">NATURAMA</option>';
+            NOM_SITE_options_str  += '<option value="NAVRINPKE">NAVRINPKE</option>';
+            NOM_SITE_options_str  += '<option value="NEANT">NEANT</option>';
+            NOM_SITE_options_str  += '<option value="NEMAROZAN">NEMAROZAN</option>';
+            NOM_SITE_options_str  += '<option value="NGAWA KASSA">NGAWA KASSA</option>';
+            NOM_SITE_options_str  += '<option value="NIASSAM">NIASSAM</option>';
+            NOM_SITE_options_str  += '<option value="NICEO">NICEO</option>';
+            NOM_SITE_options_str  += '<option value="NIDAAGA">NIDAAGA</option>';
+            NOM_SITE_options_str  += '<option value="NIOFILA">NIOFILA</option>';
+            NOM_SITE_options_str  += '<option value="NIONGTENGA">NIONGTENGA</option>';
+            NOM_SITE_options_str  += '<option value="NITENGA">NITENGA</option>';
+            NOM_SITE_options_str  += '<option value="NOKUY">NOKUY</option>';
+            NOM_SITE_options_str  += '<option value="NOKUY BADALA">NOKUY BADALA</option>';
+            NOM_SITE_options_str  += '<option value="NOMALGSONGA">NOMALGSONGA</option>';
+            NOM_SITE_options_str  += '<option value="NON CONNU">NON CONNU</option>';
+            NOM_SITE_options_str  += '<option value="NONDJALOEDENI">NONDJALOEDENI</option>';
+            NOM_SITE_options_str  += '<option value="NONGTAABA LELEXE">NONGTAABA LELEXE</option>';
+            NOM_SITE_options_str  += '<option value="NORALKINGAL">NORALKINGAL</option>';
+            NOM_SITE_options_str  += '<option value="NYOYO">NYOYO</option>';
+            NOM_SITE_options_str  += '<option value="NÉANT">NÉANT</option>';
+            NOM_SITE_options_str  += '<option value="OCADES MANTIONGOGO">OCADES MANTIONGOGO</option>';
+            NOM_SITE_options_str  += '<option value="ORONKOUA">ORONKOUA</option>';
+            NOM_SITE_options_str  += '<option value="OUABELIE">OUABELIE</option>';
+            NOM_SITE_options_str  += '<option value="OUANOBE">OUANOBE</option>';
+            NOM_SITE_options_str  += '<option value="OUARKOYE">OUARKOYE</option>';
+            NOM_SITE_options_str  += '<option value="OUGAROU ODE">OUGAROU ODE</option>';
+            NOM_SITE_options_str  += '<option value="OUIBGA">OUIBGA</option>';
+            NOM_SITE_options_str  += '<option value="OUITO KOULIGA">OUITO KOULIGA</option>';
+            NOM_SITE_options_str  += '<option value="OULENIPIE JARDIN">OULENIPIE JARDIN</option>';
+            NOM_SITE_options_str  += '<option value="OUMOUROUBAO">OUMOUROUBAO</option>';
+            NOM_SITE_options_str  += '<option value="OUORO-GORGAL">OUORO-GORGAL</option>';
+            NOM_SITE_options_str  += '<option value="OURDJI">OURDJI</option>';
+            NOM_SITE_options_str  += '<option value="OURSI 1">OURSI 1</option>';
+            NOM_SITE_options_str  += '<option value="OUÉZINDOUGOU">OUÉZINDOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="P1P2 RS">P1P2 RS</option>';
+            NOM_SITE_options_str  += '<option value="PAFASP">PAFASP</option>';
+            NOM_SITE_options_str  += '<option value="PAGABACKA">PAGABACKA</option>';
+            NOM_SITE_options_str  += '<option value="PAGBA ZIEDO PARCELLE">PAGBA ZIEDO PARCELLE</option>';
+            NOM_SITE_options_str  += '<option value="PAGOU GOURMA">PAGOU GOURMA</option>';
+            NOM_SITE_options_str  += '<option value="PAGOU GOURMA 2">PAGOU GOURMA 2</option>';
+            NOM_SITE_options_str  += '<option value="PAGOU GOURMA 4">PAGOU GOURMA 4</option>';
+            NOM_SITE_options_str  += '<option value="PALBOA">PALBOA</option>';
+            NOM_SITE_options_str  += '<option value="PANSRAOYANGA">PANSRAOYANGA</option>';
+            NOM_SITE_options_str  += '<option value="PAPARSE">PAPARSE</option>';
+            NOM_SITE_options_str  += '<option value="PATREBAKAN">PATREBAKAN</option>';
+            NOM_SITE_options_str  += '<option value="PAWEND TAORE">PAWEND TAORE</option>';
+            NOM_SITE_options_str  += '<option value="PAWENTAORE 2">PAWENTAORE 2</option>';
+            NOM_SITE_options_str  += '<option value="PAZANDA">PAZANDA</option>';
+            NOM_SITE_options_str  += '<option value="PAZEDSAGA">PAZEDSAGA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE DE BELGA">PERIMETRE DE BELGA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE DE CEBNF">PERIMETRE DE CEBNF</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE DE KANTIOKA">PERIMETRE DE KANTIOKA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE DE KOUANKIN">PERIMETRE DE KOUANKIN</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE DE TAGAYINI INOUSSA">PERIMETRE DE TAGAYINI INOUSSA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE DE YAIKA">PERIMETRE DE YAIKA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE DE YENTEMA">PERIMETRE DE YENTEMA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE I">PERIMETRE I</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE IRRIGE">PERIMETRE IRRIGE</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE IRRIGE DE BOUROUM">PERIMETRE IRRIGE DE BOUROUM</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE IRRIGE DE GAGUINI">PERIMETRE IRRIGE DE GAGUINI</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE IRRIGE PINWENDE">PERIMETRE IRRIGE PINWENDE</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE IRRIGUE">PERIMETRE IRRIGUE</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE IRRIGUE DE BANDANGOU">PERIMETRE IRRIGUE DE BANDANGOU</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE IRRIGUE DE SANON">PERIMETRE IRRIGUE DE SANON</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER">PERIMETRE MARAICHER</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE BILANGA">PERIMETRE MARAICHER DE BILANGA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE BOTOU 1">PERIMETRE MARAICHER DE BOTOU 1</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE DIPIENDA">PERIMETRE MARAICHER DE DIPIENDA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE DIPIENGA ACF">PERIMETRE MARAICHER DE DIPIENGA ACF</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE L&apos;ECOLE DE TAMBIGA">PERIMETRE MARAICHER DE L&apos;ECOLE DE TAMBIGA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE PAPAYENGA">PERIMETRE MARAICHER DE PAPAYENGA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE TANDJARI">PERIMETRE MARAICHER DE TANDJARI</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE THIONBIANO FIDEL">PERIMETRE MARAICHER DE THIONBIANO FIDEL</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DE YADORI 2">PERIMETRE MARAICHER DE YADORI 2</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DES CATHECHISTE">PERIMETRE MARAICHER DES CATHECHISTE</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DES JEUNES">PERIMETRE MARAICHER DES JEUNES</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER DU GROUPEMENT VILLAGEOIS DE NABONSWENDE">PERIMETRE MARAICHER DU GROUPEMENT VILLAGEOIS DE NABONSWENDE</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER1 DE KOGUINA">PERIMETRE MARAICHER1 DE KOGUINA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHER2 DE KOGUINA">PERIMETRE MARAICHER2 DE KOGUINA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARAICHERE ACF">PERIMETRE MARAICHERE ACF</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARECHER DE AGASSABA">PERIMETRE MARECHER DE AGASSABA</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARECHER DE DEBERE">PERIMETRE MARECHER DE DEBERE</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE MARECHER DE SOUGOUDOU">PERIMETRE MARECHER DE SOUGOUDOU</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE RIZICOLE">PERIMETRE RIZICOLE</option>';
+            NOM_SITE_options_str  += '<option value="PERIMETRE THIONBIANO FREDERIC ET JUSTIN">PERIMETRE THIONBIANO FREDERIC ET JUSTIN</option>';
+            NOM_SITE_options_str  += '<option value="PERIMÈTRE IRRIGUÉ DE DI">PERIMÈTRE IRRIGUÉ DE DI</option>';
+            NOM_SITE_options_str  += '<option value="PERIMÈTRE IRRIGUÉ DE NOKUY">PERIMÈTRE IRRIGUÉ DE NOKUY</option>';
+            NOM_SITE_options_str  += '<option value="PERIMÈTRE MARAICHER DE LABARANI">PERIMÈTRE MARAICHER DE LABARANI</option>';
+            NOM_SITE_options_str  += '<option value="PERSONNELLE 2">PERSONNELLE 2</option>';
+            NOM_SITE_options_str  += '<option value="PETAPOURA">PETAPOURA</option>';
+            NOM_SITE_options_str  += '<option value="PETEDADI">PETEDADI</option>';
+            NOM_SITE_options_str  += '<option value="PETIT JARDIN DE BOUNOU">PETIT JARDIN DE BOUNOU</option>';
+            NOM_SITE_options_str  += '<option value="PIGEPE DE MEZAN">PIGEPE DE MEZAN</option>';
+            NOM_SITE_options_str  += '<option value="PINDEGA">PINDEGA</option>';
+            NOM_SITE_options_str  += '<option value="PISSAI">PISSAI</option>';
+            NOM_SITE_options_str  += '<option value="PISSI BISSIGA">PISSI BISSIGA</option>';
+            NOM_SITE_options_str  += '<option value="PISSIGA">PISSIGA</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE">PLAINE</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE BANZON">PLAINE DE BANZON</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE BIDIGA">PLAINE DE BIDIGA</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE KARFIGUELA">PLAINE DE KARFIGUELA</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE LAGDWENDA">PLAINE DE LAGDWENDA</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE MOGTEDO">PLAINE DE MOGTEDO</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE MOUZI">PLAINE DE MOUZI</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE NAGREONGO">PLAINE DE NAGREONGO</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE DE TIEBELE / GOUMPIA">PLAINE DE TIEBELE / GOUMPIA</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE GORGHO / SIMPORE">PLAINE GORGHO / SIMPORE</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE IRRIGUEE">PLAINE IRRIGUEE</option>';
+            NOM_SITE_options_str  += '<option value="PLAINE NIENA DIONKELE">PLAINE NIENA DIONKELE</option>';
+            NOM_SITE_options_str  += '<option value="POESSIN">POESSIN</option>';
+            NOM_SITE_options_str  += '<option value="POGNIKOALI">POGNIKOALI</option>';
+            NOM_SITE_options_str  += '<option value="POGNINKOALI - TINTUA">POGNINKOALI - TINTUA</option>';
+            NOM_SITE_options_str  += '<option value="POLOUNDIN">POLOUNDIN</option>';
+            NOM_SITE_options_str  += '<option value="PONIRO">PONIRO</option>';
+            NOM_SITE_options_str  += '<option value="PONTIEBA">PONTIEBA</option>';
+            NOM_SITE_options_str  += '<option value="POUANKUY">POUANKUY</option>';
+            NOM_SITE_options_str  += '<option value="POUNDOU">POUNDOU</option>';
+            NOM_SITE_options_str  += '<option value="POUNKOUYAN">POUNKOUYAN</option>';
+            NOM_SITE_options_str  += '<option value="POUSGHIN">POUSGHIN</option>';
+            NOM_SITE_options_str  += '<option value="POUTI">POUTI</option>';
+            NOM_SITE_options_str  += '<option value="POWENTENGA BOONGO">POWENTENGA BOONGO</option>';
+            NOM_SITE_options_str  += '<option value="PP2">PP2</option>';
+            NOM_SITE_options_str  += '<option value="PRIMETRE MARAICHER BRACED ROLLO">PRIMETRE MARAICHER BRACED ROLLO</option>';
+            NOM_SITE_options_str  += '<option value="PRIWÉ">PRIWÉ</option>';
+            NOM_SITE_options_str  += '<option value="PRP DE PONGO">PRP DE PONGO</option>';
+            NOM_SITE_options_str  += '<option value="PÉRIMETRE MARAICHER OCADES  DE PELCIA">PÉRIMETRE MARAICHER OCADES  DE PELCIA</option>';
+            NOM_SITE_options_str  += '<option value="PÉRIMÈTRE">PÉRIMÈTRE</option>';
+            NOM_SITE_options_str  += '<option value="PÉRIMÈTRE  MARAÎCHER PNGT DE BARIBSI">PÉRIMÈTRE  MARAÎCHER PNGT DE BARIBSI</option>';
+            NOM_SITE_options_str  += '<option value="PÉRIMÈTRE  MARAÎCHER PNGT DE NASSOULOU">PÉRIMÈTRE  MARAÎCHER PNGT DE NASSOULOU</option>';
+            NOM_SITE_options_str  += '<option value="PÉRIMÈTRE AMÉNAGÉ DE GOUMOGHO">PÉRIMÈTRE AMÉNAGÉ DE GOUMOGHO</option>';
+            NOM_SITE_options_str  += '<option value="PÉRIMÈTRE BANGRENOOMA DE SOAW">PÉRIMÈTRE BANGRENOOMA DE SOAW</option>';
+            NOM_SITE_options_str  += '<option value="PÉRRIMÈTRE IRRIGUÉ">PÉRRIMÈTRE IRRIGUÉ</option>';
+            NOM_SITE_options_str  += '<option value="RANDGHIN">RANDGHIN</option>';
+            NOM_SITE_options_str  += '<option value="RAWELGBOUDOU">RAWELGBOUDOU</option>';
+            NOM_SITE_options_str  += '<option value="REL-WENDE">REL-WENDE</option>';
+            NOM_SITE_options_str  += '<option value="RELWENDE">RELWENDE</option>';
+            NOM_SITE_options_str  += '<option value="RETENU D&apos;EAU DE KONENI">RETENU D&apos;EAU DE KONENI</option>';
+            NOM_SITE_options_str  += '<option value="RISSAIAM">RISSAIAM</option>';
+            NOM_SITE_options_str  += '<option value="RIVE DROITE V1">RIVE DROITE V1</option>';
+            NOM_SITE_options_str  += '<option value="RIVE DROITE V2">RIVE DROITE V2</option>';
+            NOM_SITE_options_str  += '<option value="RIVE DROITE V3">RIVE DROITE V3</option>';
+            NOM_SITE_options_str  += '<option value="RIVE DROITE V4">RIVE DROITE V4</option>';
+            NOM_SITE_options_str  += '<option value="RIVE GAUCHE V1A">RIVE GAUCHE V1A</option>';
+            NOM_SITE_options_str  += '<option value="RIVE GAUCHE V1B">RIVE GAUCHE V1B</option>';
+            NOM_SITE_options_str  += '<option value="RIVE GAUCHE V2">RIVE GAUCHE V2</option>';
+            NOM_SITE_options_str  += '<option value="RIVE GAUCHE V3">RIVE GAUCHE V3</option>';
+            NOM_SITE_options_str  += '<option value="RIVE GAUCHE V4">RIVE GAUCHE V4</option>';
+            NOM_SITE_options_str  += '<option value="RIVE GAUCHE V5">RIVE GAUCHE V5</option>';
+            NOM_SITE_options_str  += '<option value="ROLLO">ROLLO</option>';
+            NOM_SITE_options_str  += '<option value="ROUAMBA">ROUAMBA</option>';
+            NOM_SITE_options_str  += '<option value="ROUNI">ROUNI</option>';
+            NOM_SITE_options_str  += '<option value="SADABA">SADABA</option>';
+            NOM_SITE_options_str  += '<option value="SADON BOBO BANANERAIE">SADON BOBO BANANERAIE</option>';
+            NOM_SITE_options_str  += '<option value="SAGOÉTA">SAGOÉTA</option>';
+            NOM_SITE_options_str  += '<option value="SAGTINA">SAGTINA</option>';
+            NOM_SITE_options_str  += '<option value="SAKOINSE">SAKOINSE</option>';
+            NOM_SITE_options_str  += '<option value="SAKOU MOSSI">SAKOU MOSSI</option>';
+            NOM_SITE_options_str  += '<option value="SALGABANKA">SALGABANKA</option>';
+            NOM_SITE_options_str  += '<option value="SALO">SALO</option>';
+            NOM_SITE_options_str  += '<option value="SALOGO MOBEGA">SALOGO MOBEGA</option>';
+            NOM_SITE_options_str  += '<option value="SALSE">SALSE</option>';
+            NOM_SITE_options_str  += '<option value="SAMPE">SAMPE</option>';
+            NOM_SITE_options_str  += '<option value="SANEBA">SANEBA</option>';
+            NOM_SITE_options_str  += '<option value="SANGA">SANGA</option>';
+            NOM_SITE_options_str  += '<option value="SANKANDE">SANKANDE</option>';
+            NOM_SITE_options_str  += '<option value="SANKOÉ">SANKOÉ</option>';
+            NOM_SITE_options_str  += '<option value="SANRGO">SANRGO</option>';
+            NOM_SITE_options_str  += '<option value="SATRE">SATRE</option>';
+            NOM_SITE_options_str  += '<option value="SATRÉ">SATRÉ</option>';
+            NOM_SITE_options_str  += '<option value="SATTE">SATTE</option>';
+            NOM_SITE_options_str  += '<option value="SAVILI">SAVILI</option>';
+            NOM_SITE_options_str  += '<option value="SECTEUR 04 MANNI">SECTEUR 04 MANNI</option>';
+            NOM_SITE_options_str  += '<option value="SECTEUR 3/BOGANDÉ">SECTEUR 3/BOGANDÉ</option>';
+            NOM_SITE_options_str  += '<option value="SECTEUR 4">SECTEUR 4</option>';
+            NOM_SITE_options_str  += '<option value="SECTEUR 6">SECTEUR 6</option>';
+            NOM_SITE_options_str  += '<option value="SELGO">SELGO</option>';
+            NOM_SITE_options_str  += '<option value="SIBERA">SIBERA</option>';
+            NOM_SITE_options_str  += '<option value="SIGNONGUIN">SIGNONGUIN</option>';
+            NOM_SITE_options_str  += '<option value="SILLY">SILLY</option>';
+            NOM_SITE_options_str  += '<option value="SILMIBAGA">SILMIBAGA</option>';
+            NOM_SITE_options_str  += '<option value="SINCENE">SINCENE</option>';
+            NOM_SITE_options_str  += '<option value="SINDE">SINDE</option>';
+            NOM_SITE_options_str  += '<option value="SIRABADALA2">SIRABADALA2</option>';
+            NOM_SITE_options_str  += '<option value="SIRBA">SIRBA</option>';
+            NOM_SITE_options_str  += '<option value="SIRIMBOULIS">SIRIMBOULIS</option>';
+            NOM_SITE_options_str  += '<option value="SISSILY">SISSILY</option>';
+            NOM_SITE_options_str  += '<option value="SITE 1 AMUS DE TIBRELA">SITE 1 AMUS DE TIBRELA</option>';
+            NOM_SITE_options_str  += '<option value="SITE 2">SITE 2</option>';
+            NOM_SITE_options_str  += '<option value="SITE 2 AMUS DE TIBRELA (OUAIGOUY)">SITE 2 AMUS DE TIBRELA (OUAIGOUY)</option>';
+            NOM_SITE_options_str  += '<option value="SITE AMUS DE KAONSÉ">SITE AMUS DE KAONSÉ</option>';
+            NOM_SITE_options_str  += '<option value="SITE AMUS DE RIHALO">SITE AMUS DE RIHALO</option>';
+            NOM_SITE_options_str  += '<option value="SITE AMÉNAGÉ DES FEMMES DE SOULA">SITE AMÉNAGÉ DES FEMMES DE SOULA</option>';
+            NOM_SITE_options_str  += '<option value="SITE COMMUNAUTAIRE PAMEFA">SITE COMMUNAUTAIRE PAMEFA</option>';
+            NOM_SITE_options_str  += '<option value="SITE D&apos;EXPERIMENTATION GOUTTE À GOUTTE">SITE D&apos;EXPERIMENTATION GOUTTE À GOUTTE</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE ABRA">SITE DE ABRA</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE AGED">SITE DE AGED</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE BALAVE">SITE DE BALAVE</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE BANIPOOGNI">SITE DE BANIPOOGNI</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE BANJITI">SITE DE BANJITI</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE DANABON">SITE DE DANABON</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE DIAPANGOU">SITE DE DIAPANGOU</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE DJORA">SITE DE DJORA</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE DOUALIGOU">SITE DE DOUALIGOU</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE GOUDRIN">SITE DE GOUDRIN</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE GOUNTOURE">SITE DE GOUNTOURE</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE KOANDA ABDOU A LIKI">SITE DE KOANDA ABDOU A LIKI</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE KOMONIN">SITE DE KOMONIN</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE KORA 3">SITE DE KORA 3</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE LEEDE">SITE DE LEEDE</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE LOUARGOU">SITE DE LOUARGOU</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE MAIGA MOUSSA">SITE DE MAIGA MOUSSA</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE NANIÉBON">SITE DE NANIÉBON</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE NAPALGUÉ">SITE DE NAPALGUÉ</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE OARGONI">SITE DE OARGONI</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE PAPNA">SITE DE PAPNA</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE POUGOUZAIBAOGO">SITE DE POUGOUZAIBAOGO</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE SANDOGO">SITE DE SANDOGO</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE SANGOANDROU">SITE DE SANGOANDROU</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE SERACOM">SITE DE SERACOM</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE SIKIDENI">SITE DE SIKIDENI</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE SÉMAGA">SITE DE SÉMAGA</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE TAMBIGA2">SITE DE TAMBIGA2</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE TCHIBAKA">SITE DE TCHIBAKA</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE WABEDI">SITE DE WABEDI</option>';
+            NOM_SITE_options_str  += '<option value="SITE DE ZANA">SITE DE ZANA</option>';
+            NOM_SITE_options_str  += '<option value="SITE DEBERE CHARAM-CHARAM">SITE DEBERE CHARAM-CHARAM</option>';
+            NOM_SITE_options_str  += '<option value="SITE DU SECTEUR 3">SITE DU SECTEUR 3</option>';
+            NOM_SITE_options_str  += '<option value="SITE FAO DE TITA">SITE FAO DE TITA</option>';
+            NOM_SITE_options_str  += '<option value="SITE GROUPEMENT BASSE NÉRÉ">SITE GROUPEMENT BASSE NÉRÉ</option>';
+            NOM_SITE_options_str  += '<option value="SITE INDIVIDUEL I3">SITE INDIVIDUEL I3</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER">SITE MARAICHER</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER ADER">SITE MARAICHER ADER</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER ASSOCIATION ACLEM">SITE MARAICHER ASSOCIATION ACLEM</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER BELEL SENO">SITE MARAICHER BELEL SENO</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER CISV">SITE MARAICHER CISV</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE BAOGHIN">SITE MARAICHER DE BAOGHIN</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE BELLEL SENO">SITE MARAICHER DE BELLEL SENO</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE BIDI">SITE MARAICHER DE BIDI</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE BOSSEY DOGABE">SITE MARAICHER DE BOSSEY DOGABE</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE DAKPLO KOULAPOR">SITE MARAICHER DE DAKPLO KOULAPOR</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE DAMBAM">SITE MARAICHER DE DAMBAM</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE DAMPELA">SITE MARAICHER DE DAMPELA</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE DEBERE DOUMAM">SITE MARAICHER DE DEBERE DOUMAM</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE DJIKA">SITE MARAICHER DE DJIKA</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE DOUMAM">SITE MARAICHER DE DOUMAM</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE GAGANI">SITE MARAICHER DE GAGANI</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE GUENBILA">SITE MARAICHER DE GUENBILA</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE KIRIBLE">SITE MARAICHER DE KIRIBLE</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE KORIZENA">SITE MARAICHER DE KORIZENA</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE L&apos;ORPHELINA DE GOROM-GOROM">SITE MARAICHER DE L&apos;ORPHELINA DE GOROM-GOROM</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE LOUARGOU">SITE MARAICHER DE LOUARGOU</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE MARGUANTA">SITE MARAICHER DE MARGUANTA</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE MARKOYE">SITE MARAICHER DE MARKOYE</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE MENEGOU">SITE MARAICHER DE MENEGOU</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE NIBETEON">SITE MARAICHER DE NIBETEON</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE OLARO">SITE MARAICHER DE OLARO</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE OURO-HESSO">SITE MARAICHER DE OURO-HESSO</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE PETABOULIS">SITE MARAICHER DE PETABOULIS</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE SAOUGA">SITE MARAICHER DE SAOUGA</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE TABOU">SITE MARAICHER DE TABOU</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE TASMAKATT">SITE MARAICHER DE TASMAKATT</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE TIN-AGADEL">SITE MARAICHER DE TIN-AGADEL</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DE ZOUNGAWYE">SITE MARAICHER DE ZOUNGAWYE</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER DU SECTEUR 3">SITE MARAICHER DU SECTEUR 3</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER FAO">SITE MARAICHER FAO</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER PEGEFE">SITE MARAICHER PEGEFE</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER REPAS">SITE MARAICHER REPAS</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAICHER TARTIDTE">SITE MARAICHER TARTIDTE</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARAÎCHER DE TIOUMA">SITE MARAÎCHER DE TIOUMA</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARECHERE DE BASSEMBILY 2">SITE MARECHERE DE BASSEMBILY 2</option>';
+            NOM_SITE_options_str  += '<option value="SITE MARECHERE DE DEBOUDA">SITE MARECHERE DE DEBOUDA</option>';
+            NOM_SITE_options_str  += '<option value="SITE PIGEPE DE BADORA">SITE PIGEPE DE BADORA</option>';
+            NOM_SITE_options_str  += '<option value="SITE PIGEPE DE DIMOLO">SITE PIGEPE DE DIMOLO</option>';
+            NOM_SITE_options_str  += '<option value="SITE PIGEPE DE KOUBA">SITE PIGEPE DE KOUBA</option>';
+            NOM_SITE_options_str  += '<option value="SITE PIGEPE DE MEKPA">SITE PIGEPE DE MEKPA</option>';
+            NOM_SITE_options_str  += '<option value="SITE PILOTE PPIG DE KODOUGOU">SITE PILOTE PPIG DE KODOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="SITE PROMO-FEMME DE SOMÉ">SITE PROMO-FEMME DE SOMÉ</option>';
+            NOM_SITE_options_str  += '<option value="SITE RIGICOLE DE BOGUENDE">SITE RIGICOLE DE BOGUENDE</option>';
+            NOM_SITE_options_str  += '<option value="SITE RIGICOLE DE FAMANA">SITE RIGICOLE DE FAMANA</option>';
+            NOM_SITE_options_str  += '<option value="SITE RIGICOLE DE GAEL">SITE RIGICOLE DE GAEL</option>';
+            NOM_SITE_options_str  += '<option value="SITE RIZICOLE DE FONGUIN">SITE RIZICOLE DE FONGUIN</option>';
+            NOM_SITE_options_str  += '<option value="SITE RIZICOLE DE GOENAGA">SITE RIZICOLE DE GOENAGA</option>';
+            NOM_SITE_options_str  += '<option value="SITE RIZICOLE DE GUENBILA">SITE RIZICOLE DE GUENBILA</option>';
+            NOM_SITE_options_str  += '<option value="SITE1 MARAICHER GDES DE  KOKOYO">SITE1 MARAICHER GDES DE  KOKOYO</option>';
+            NOM_SITE_options_str  += '<option value="SIX- S">SIX- S</option>';
+            NOM_SITE_options_str  += '<option value="SOBIOTIN BOANGO">SOBIOTIN BOANGO</option>';
+            NOM_SITE_options_str  += '<option value="SOCAF">SOCAF</option>';
+            NOM_SITE_options_str  += '<option value="SOGODJANKOLI">SOGODJANKOLI</option>';
+            NOM_SITE_options_str  += '<option value="SOLEGUIN">SOLEGUIN</option>';
+            NOM_SITE_options_str  += '<option value="SOLENZO/SECT 3">SOLENZO/SECT 3</option>';
+            NOM_SITE_options_str  += '<option value="SOMDE">SOMDE</option>';
+            NOM_SITE_options_str  += '<option value="SONG-TAABA">SONG-TAABA</option>';
+            NOM_SITE_options_str  += '<option value="SONGDEN">SONGDEN</option>';
+            NOM_SITE_options_str  += '<option value="SOUBEIRA NATENGO">SOUBEIRA NATENGO</option>';
+            NOM_SITE_options_str  += '<option value="SOULA">SOULA</option>';
+            NOM_SITE_options_str  += '<option value="SOULTENGA 1">SOULTENGA 1</option>';
+            NOM_SITE_options_str  += '<option value="SOULTENGA 2">SOULTENGA 2</option>';
+            NOM_SITE_options_str  += '<option value="SYUNTHIOROKUY">SYUNTHIOROKUY</option>';
+            NOM_SITE_options_str  += '<option value="TALABIRA">TALABIRA</option>';
+            NOM_SITE_options_str  += '<option value="TAMBANGOU">TAMBANGOU</option>';
+            NOM_SITE_options_str  += '<option value="TAMBIGOURMA">TAMBIGOURMA</option>';
+            NOM_SITE_options_str  += '<option value="TAMISSI">TAMISSI</option>';
+            NOM_SITE_options_str  += '<option value="TAMNERE">TAMNERE</option>';
+            NOM_SITE_options_str  += '<option value="TAMPORIN">TAMPORIN</option>';
+            NOM_SITE_options_str  += '<option value="TAMPOULI">TAMPOULI</option>';
+            NOM_SITE_options_str  += '<option value="TANDAMBA YACOUBA">TANDAMBA YACOUBA</option>';
+            NOM_SITE_options_str  += '<option value="TANGHIN">TANGHIN</option>';
+            NOM_SITE_options_str  += '<option value="TANGHIN WOBDO">TANGHIN WOBDO</option>';
+            NOM_SITE_options_str  += '<option value="TANGINBA">TANGINBA</option>';
+            NOM_SITE_options_str  += '<option value="TANGUEMA">TANGUEMA</option>';
+            NOM_SITE_options_str  += '<option value="TANGUIGA">TANGUIGA</option>';
+            NOM_SITE_options_str  += '<option value="TANSOBENTENGA">TANSOBENTENGA</option>';
+            NOM_SITE_options_str  += '<option value="TARAMA">TARAMA</option>';
+            NOM_SITE_options_str  += '<option value="TCHADUI">TCHADUI</option>';
+            NOM_SITE_options_str  += '<option value="TEODENI">TEODENI</option>';
+            NOM_SITE_options_str  += '<option value="TIANTIABOULIS">TIANTIABOULIS</option>';
+            NOM_SITE_options_str  += '<option value="TIBIN">TIBIN</option>';
+            NOM_SITE_options_str  += '<option value="TIEKALEDJI">TIEKALEDJI</option>';
+            NOM_SITE_options_str  += '<option value="TIENA">TIENA</option>';
+            NOM_SITE_options_str  += '<option value="TIGRE">TIGRE</option>';
+            NOM_SITE_options_str  += '<option value="TIGUILI">TIGUILI</option>';
+            NOM_SITE_options_str  += '<option value="TIKWENDE DE KOLONKOM">TIKWENDE DE KOLONKOM</option>';
+            NOM_SITE_options_str  += '<option value="TILONTI 1">TILONTI 1</option>';
+            NOM_SITE_options_str  += '<option value="TINFI">TINFI</option>';
+            NOM_SITE_options_str  += '<option value="TINITUODIBA">TINITUODIBA</option>';
+            NOM_SITE_options_str  += '<option value="TINTINIKOUÈRÈ">TINTINIKOUÈRÈ</option>';
+            NOM_SITE_options_str  += '<option value="TIO">TIO</option>';
+            NOM_SITE_options_str  += '<option value="TIOGO MOUHOUN">TIOGO MOUHOUN</option>';
+            NOM_SITE_options_str  += '<option value="TIOUA">TIOUA</option>';
+            NOM_SITE_options_str  += '<option value="TIOYO">TIOYO</option>';
+            NOM_SITE_options_str  += '<option value="TITA 1">TITA 1</option>';
+            NOM_SITE_options_str  += '<option value="TITA2">TITA2</option>';
+            NOM_SITE_options_str  += '<option value="TOKPAGOU">TOKPAGOU</option>';
+            NOM_SITE_options_str  += '<option value="TOLOMPO">TOLOMPO</option>';
+            NOM_SITE_options_str  += '<option value="TORODINE">TORODINE</option>';
+            NOM_SITE_options_str  += '<option value="TOTANBINA">TOTANBINA</option>';
+            NOM_SITE_options_str  += '<option value="TOUAPOGUIDA">TOUAPOGUIDA</option>';
+            NOM_SITE_options_str  += '<option value="TOUBA">TOUBA</option>';
+            NOM_SITE_options_str  += '<option value="TOUGA">TOUGA</option>';
+            NOM_SITE_options_str  += '<option value="TOUROUM">TOUROUM</option>';
+            NOM_SITE_options_str  += '<option value="TUIRE">TUIRE</option>';
+            NOM_SITE_options_str  += '<option value="TUODJAMOALI">TUODJAMOALI</option>';
+            NOM_SITE_options_str  += '<option value="TÉKOUROU">TÉKOUROU</option>';
+            NOM_SITE_options_str  += '<option value="UNIMANTOGO">UNIMANTOGO</option>';
+            NOM_SITE_options_str  += '<option value="UNION DES GROUPEMENTS NAAM">UNION DES GROUPEMENTS NAAM</option>';
+            NOM_SITE_options_str  += '<option value="V10 RIVE DROITE">V10 RIVE DROITE</option>';
+            NOM_SITE_options_str  += '<option value="V5 RIVE DROITE">V5 RIVE DROITE</option>';
+            NOM_SITE_options_str  += '<option value="V6 RIVE DROITE">V6 RIVE DROITE</option>';
+            NOM_SITE_options_str  += '<option value="V7 RIVE DROITE">V7 RIVE DROITE</option>';
+            NOM_SITE_options_str  += '<option value="V8 RIVE DROITE">V8 RIVE DROITE</option>';
+            NOM_SITE_options_str  += '<option value="V9 RIVE DROITE">V9 RIVE DROITE</option>';
+            NOM_SITE_options_str  += '<option value="VALEE DU KOU">VALEE DU KOU</option>';
+            NOM_SITE_options_str  += '<option value="VAREK">VAREK</option>';
+            NOM_SITE_options_str  += '<option value="VERGER DE LA PAROISSE">VERGER DE LA PAROISSE</option>';
+            NOM_SITE_options_str  += '<option value="VILLY SIGUIVOUSSE">VILLY SIGUIVOUSSE</option>';
+            NOM_SITE_options_str  += '<option value="WACKOU">WACKOU</option>';
+            NOM_SITE_options_str  += '<option value="WAHABLE">WAHABLE</option>';
+            NOM_SITE_options_str  += '<option value="WAMPEGA">WAMPEGA</option>';
+            NOM_SITE_options_str  += '<option value="WAN">WAN</option>';
+            NOM_SITE_options_str  += '<option value="WARDOGO">WARDOGO</option>';
+            NOM_SITE_options_str  += '<option value="WATINAPAM">WATINAPAM</option>';
+            NOM_SITE_options_str  += '<option value="WATINOMA">WATINOMA</option>';
+            NOM_SITE_options_str  += '<option value="WATINOOMA">WATINOOMA</option>';
+            NOM_SITE_options_str  += '<option value="WAVELIASSAN">WAVELIASSAN</option>';
+            NOM_SITE_options_str  += '<option value="WEDBILA">WEDBILA</option>';
+            NOM_SITE_options_str  += '<option value="WEND BASSE NEERE">WEND BASSE NEERE</option>';
+            NOM_SITE_options_str  += '<option value="WEND LA PENGA">WEND LA PENGA</option>';
+            NOM_SITE_options_str  += '<option value="WEND PANGA">WEND PANGA</option>';
+            NOM_SITE_options_str  += '<option value="WEND SONGDO">WEND SONGDO</option>';
+            NOM_SITE_options_str  += '<option value="WENKONDI">WENKONDI</option>';
+            NOM_SITE_options_str  += '<option value="WILSON MULTI WORKS">WILSON MULTI WORKS</option>';
+            NOM_SITE_options_str  += '<option value="YADORI 1">YADORI 1</option>';
+            NOM_SITE_options_str  += '<option value="YAKADI">YAKADI</option>';
+            NOM_SITE_options_str  += '<option value="YALGATENGA">YALGATENGA</option>';
+            NOM_SITE_options_str  += '<option value="YALGATENGA/ LAC BAM">YALGATENGA/ LAC BAM</option>';
+            NOM_SITE_options_str  += '<option value="YALGATENGA/LAC BAM">YALGATENGA/LAC BAM</option>';
+            NOM_SITE_options_str  += '<option value="YALI YAHIRE">YALI YAHIRE</option>';
+            NOM_SITE_options_str  += '<option value="YALKA">YALKA</option>';
+            NOM_SITE_options_str  += '<option value="YANLIEBOU">YANLIEBOU</option>';
+            NOM_SITE_options_str  += '<option value="YAOGIN">YAOGIN</option>';
+            NOM_SITE_options_str  += '<option value="YAOGUEN">YAOGUEN</option>';
+            NOM_SITE_options_str  += '<option value="YAONGO">YAONGO</option>';
+            NOM_SITE_options_str  += '<option value="YARGOU">YARGOU</option>';
+            NOM_SITE_options_str  += '<option value="YASSOU">YASSOU</option>';
+            NOM_SITE_options_str  += '<option value="YATTAKOU">YATTAKOU</option>';
+            NOM_SITE_options_str  += '<option value="YELKOTO">YELKOTO</option>';
+            NOM_SITE_options_str  += '<option value="YENBIL-BAONGO">YENBIL-BAONGO</option>';
+            NOM_SITE_options_str  += '<option value="YENDJOABA">YENDJOABA</option>';
+            NOM_SITE_options_str  += '<option value="YENLOUGDI">YENLOUGDI</option>';
+            NOM_SITE_options_str  += '<option value="YO-CENTRE">YO-CENTRE</option>';
+            NOM_SITE_options_str  += '<option value="YOAGIN 3">YOAGIN 3</option>';
+            NOM_SITE_options_str  += '<option value="YOBA">YOBA</option>';
+            NOM_SITE_options_str  += '<option value="YONLI FOUDIA">YONLI FOUDIA</option>';
+            NOM_SITE_options_str  += '<option value="YOUROUNA">YOUROUNA</option>';
+            NOM_SITE_options_str  += '<option value="YÈRÈSSORO">YÈRÈSSORO</option>';
+            NOM_SITE_options_str  += '<option value="ZAGTOGO">ZAGTOGO</option>';
+            NOM_SITE_options_str  += '<option value="ZAMO">ZAMO</option>';
+            NOM_SITE_options_str  += '<option value="ZANGOGO">ZANGOGO</option>';
+            NOM_SITE_options_str  += '<option value="ZEEMSTAABA">ZEEMSTAABA</option>';
+            NOM_SITE_options_str  += '<option value="ZEGUEDEGUIN">ZEGUEDEGUIN</option>';
+            NOM_SITE_options_str  += '<option value="ZEKEZE">ZEKEZE</option>';
+            NOM_SITE_options_str  += '<option value="ZIBAKO">ZIBAKO</option>';
+            NOM_SITE_options_str  += '<option value="ZIGA">ZIGA</option>';
+            NOM_SITE_options_str  += '<option value="ZIGA - BADALA">ZIGA - BADALA</option>';
+            NOM_SITE_options_str  += '<option value="ZIMKROME">ZIMKROME</option>';
+            NOM_SITE_options_str  += '<option value="ZINDAZIGA">ZINDAZIGA</option>';
+            NOM_SITE_options_str  += '<option value="ZINGANE">ZINGANE</option>';
+            NOM_SITE_options_str  += '<option value="ZONE BAZON KOMSAGA">ZONE BAZON KOMSAGA</option>';
+            NOM_SITE_options_str  += '<option value="ZOPIELI">ZOPIELI</option>';
+            NOM_SITE_options_str  += '<option value="ZORENZOUGOU">ZORENZOUGOU</option>';
+            NOM_SITE_options_str  += '<option value="ZORKOUM">ZORKOUM</option>';
+            NOM_SITE_options_str  += '<option value="ZOURMA">ZOURMA</option>';
+            sel_NOM_SITE.innerHTML = NOM_SITE_options_str;
+            div_NOM_SITE.appendChild(sel_NOM_SITE);
+            var lab_NOM_SITE = document.createElement('div');
+            lab_NOM_SITE.innerHTML = 'NOM_SITE';
+            lab_NOM_SITE.className = 'filterlabel';
+            div_NOM_SITE.appendChild(lab_NOM_SITE);
+            var reset_NOM_SITE = document.createElement('div');
+            reset_NOM_SITE.innerHTML = 'clear filter';
+            reset_NOM_SITE.className = 'filterlabel';
+            reset_NOM_SITE.onclick = function() {
+                var options = document.getElementById("sel_NOM_SITE").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_NOM_SITE.appendChild(reset_NOM_SITE);
+        resetLabels([layer_gadm41_BFA_1_0]);
+        map.on("zoomend", function(){
+            resetLabels([layer_gadm41_BFA_1_0]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_gadm41_BFA_1_0]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_gadm41_BFA_1_0]);
+        });
+        </script>
+    </body>
+</html>
